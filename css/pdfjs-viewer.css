@@ -23,19 +23,55 @@
     background: #ccc;
     text-align: center;
 }
+.pdfpages.horizontal-scroll {
+    display: flex;
+}
+.pdfpages.horizontal-scroll .pdfpage {
+    margin-left: 1em;
+    margin-top: 0.25em !important;
+    margin-bottom: 0.25em !important;
+    display: block;
+}
 .pdfpage {
+    height: 100px;
     margin-bottom: 1em;
     margin-top: 1em;
     position: relative;
-    height: 100%;
     margin-left: auto;
     margin-right: auto;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.09);
+    display: flex;
 }
 .pdfpage canvas {
-    position: absolute; left: 0; top: 0; height: 100%; width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
 }
 .pdfpage.placeholder {
     display: flex;
     margin-bottom: 0em !important;
     margin-top: 0em !important;
+    height: 100%;
+    width: 100%;
 }
+.pdfpage .content-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+}
+.pdfpage .content-wrapper .loader {
+    border: 2px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
