@@ -45,7 +45,7 @@
 
     let pdfViewer = new PDFjsViewer($('.pdfpages'));
     pdfViewer.loadDocument(PDFFILE).then(function() {
-        pdfViewer.zoomFit();
+        pdfViewer.setZoom("fit");
     });
 </script>
 </html>

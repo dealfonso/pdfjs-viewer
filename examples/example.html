@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="../js/pdfjs-viewer.js"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
+    <link rel="stylesheet" href="../css/pdftoolbar.css">
     <script>
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
 
@@ -18,28 +17,15 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
     </script>
     <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
         .pdfviewer {
             height: 100%;
             margin: 0;
             padding: 0;
-        }
-        .pdftoolbar, .pdftoolbar i {
-            font-size: 14px;
-        }
-        .pdftoolbar span {
-            margin-right: 0.5em;
-            margin-left: 0.5em;
-            width: 4em !important;
-            font-size: 12px;
-        }
-        .pdftoolbar .btn-sm {
-            padding: 0.12rem 0.25rem;
-        }
-        .pdftoolbar {
-            width: 100%;
-            height: auto;
-            background: #ddd;
-            z-index: 100;
         }
         .thumbnails {
             height: 100%;
@@ -53,7 +39,8 @@
             text-align: center;
         }
         .thumbnails .pdfpage.selected {
-            border: 3px solid #444;
+            border: 2px solid #777;
+            border-radius: 2px;
         }
         .hider {
             position: absolute;
@@ -63,6 +50,7 @@
             display: flex;
         }
         .hider a, .hider a i {
+            margin: auto 0;
             font-size: 10px;
             color: #333;
         }
@@ -75,140 +63,175 @@
     </style>
 </head>
 <body>
-    <div class="row w-100 h-100 m-0">
-        <div class="col-12 pdfviewer">
-            <div class="pdftoolbar text-center row m-0">
-                <div class="col-12 col-lg-5 my-1">
-                    <button class="btn btn-secondary btn-sm btn-first" onclick="pdfViewer.first()"><i class="material-icons-outlined">skip_previous</i></button>
-                    <button class="btn btn-secondary btn-sm btn-prev" onclick="pdfViewer.prev()"><i class="material-icons-outlined">navigate_before</i></button>
-                    <span class="pageno"></span>
-                    <button class="btn btn-secondary btn-sm btn-next" onclick="pdfViewer.next()"><i class="material-icons-outlined">navigate_next</i></button>
-                    <button class="btn btn-secondary btn-sm btn-last" onclick="pdfViewer.last()"><i class="material-icons-outlined">skip_next</i></button>
-                </div>
-                <div class="col-12 col-lg-5 my-1">
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomOut()"><i class="material-icons-outlined">zoom_out</i></button>
+    <div class="col-12 pdfviewer">
+        <div class="pdftoolbar">
+            <button class="" onclick="pdfViewer.prev();"><i class="material-icons-outlined">arrow_upward</i></button>
+            <div class="v-sep"></div>
+            <button class="" onclick="pdfViewer.next();"><i class="material-icons-outlined">arrow_downward</i></button>
+            <input id="pageno" class="pageno" type="number" class="form-control form-control-sm d-inline w-auto" value="1" min="1" max="1000" onchange="pdfViewer.scrollToPage(parseInt(this.value))">
+            <span id="pagecount" class="pageno"></span>
+            <div class="divider"></div>
+            <button class="btn btn-secondary btn-sm" onclick="setZoom('in')"><i class="material-icons-outlined">add</i></button>
+            <div class="v-sep"></div>
+            <button class="btn btn-secondary btn-sm" onclick="setZoom('out')"><i class="material-icons-outlined">remove</i></button>
+            <div class="dropdown">
+                <div class="dropdown-value" onclick="this.parentNode.classList.toggle('show');">
                     <span class="zoomval">100%</span>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomIn()"><i class="material-icons-outlined">zoom_in</i></button>
-                    <button class="btn btn-secondary btn-sm ms-3" onclick="pdfViewer.zoomWidth()"><i class="material-icons-outlined">swap_horiz</i></button>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomHeight()"><i class="material-icons-outlined">swap_vert</i></button>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomFit()"><i class="material-icons-outlined">fit_screen</i></button>
+                    <i class="material-icons-outlined">
+                        keyboard_arrow_down
+                    </i>                    
                 </div>
-                <div class="col-12 col-lg-2 my-1">
-                    <button class="btn btn-secondary btn-sm btn-first" onclick="window.open(PDFFILE, '_blank')"><i class="material-icons-outlined">file_download</i></button>
+                <div class="dropdown-content" onclick="this.parentNode.classList.toggle('show');">
+                    <a href="#" data-zoom="width" onclick='setZoom(this); return false;'>Adjust width</a>
+                    <a href="#" data-zoom="height" onclick='setZoom(this); return false;'>Adjust height</a>
+                    <a href="#" data-zoom="fit" onclick='setZoom(this); return false;'>Fit page</a>
+                    <a href="#" data-zoom="0.5" onclick='setZoom(this); return false;'>50%</a>
+                    <a href="#" data-zoom="0.75" onclick='setZoom(this); return false;'>75%</a>
+                    <a href="#" data-zoom="1" onclick='setZoom(this); return false;'>100%</a>
+                    <a href="#" data-zoom="1.25" onclick='setZoom(this); return false;'>125%</a>
+                    <a href="#" data-zoom="1.5" onclick='setZoom(this); return false;'>150%</a>
+                    <a href="#" data-zoom="2" onclick='setZoom(this); return false;'>200%</a>
+                    <a href="#" data-zoom="3" onclick='setZoom(this); return false;'>300%</a>
+                    <a href="#" data-zoom="4" onclick='setZoom(this); return false;'>400%</a>
+                </div>                    
+            </div>
+            <div class="divider"></div>
+            <button class="btn btn-secondary btn-sm btn-first" onclick="window.open(PDFFILE, '_blank')"><i class="material-icons-outlined">file_download</i></button>
+            <div class="dropdown dropdown-right">
+                <div onclick="this.parentNode.classList.toggle('show');">
+                    <button><i class="material-icons-outlined">keyboard_double_arrow_right</i></button>
                 </div>
-            </div>
-            <div class="thumbnails">
-            </div>
-            <div class="hider">
-                <a class="my-auto fold" href="#" onclick="hidethumbs(); return false;">
-                    <i class="material-icons-outlined">keyboard_double_arrow_left</i>
-                </a>
-                <a class="my-auto unfold" href="#" onclick="showthumbs(); return false;">
-                    <i class="material-icons-outlined">keyboard_double_arrow_right</i>
-                </a>
-            </div>
-            <div class="pdfpages">
-                <div class="pdfpage placeholder">
-                    <p class="my-auto mx-auto">Cargue un fichero</p>
-                </div>
-            </div>    
+                <div class="dropdown-content" onclick="this.parentNode.classList.toggle('show');">
+                    <a href="#" onclick='pdfViewer.scrollToPage(1); return false;'><i class="material-icons-outlined">vertical_align_top</i>First page</a>
+                    <a href="#" onclick='pdfViewer.scrollToPage(pdfViewer.pdf.numPages); return false;'><i class="material-icons-outlined">vertical_align_bottom</i>Last page</a>
+                    <div class="h-sep"></div>
+                    <a href="#" onclick='document.querySelector(".pdfpages").classList.remove("horizontal-scroll"); pdfViewer.refreshAll();'><i class="material-icons-outlined">more_vert</i>Vertical scroll</a>
+                    <a href="#" onclick='setHorizontal()'><i class="material-icons-outlined">more_horiz</i>Horizontal scroll</a>
+                </div>                    
+            </div>                
         </div>
+        <div class="thumbnails">
+        </div>
+        <div class="hider">
+            <a class="my-auto fold" href="#" onclick="hidethumbs(); return false;">
+                <i class="material-icons-outlined">keyboard_double_arrow_left</i>
+            </a>
+            <a class="my-auto unfold" href="#" onclick="showthumbs(); return false;">
+                <i class="material-icons-outlined">keyboard_double_arrow_right</i>
+            </a>
+        </div>
+        <div class="pdfpages">
+            <div class="pdfpage placeholder">
+                <p class="my-auto mx-auto">Cargue un fichero</p>
+            </div>
+        </div>    
     </div>
 </body>
 <script>
-    let PDFFILE="test.pdf";
-    function hidethumbs() {
-        $('.thumbnails').hide();
-        pdfViewer.adjustPlacement();
-        pdfThumbnails.adjustPlacement();
+let PDFFILE="test.pdf";
+function setHorizontal() {
+    document.querySelector(".pdfpages").classList.add("horizontal-scroll"); 
+    pdfViewer.refreshAll();    
+}
+function setZoom(el) {
+    if (typeof el === "object")
+        pdfViewer.setZoom($(el).data('zoom'));
+    else
+        pdfViewer.setZoom(el);
+}
+function hidethumbs() {
+    $('.thumbnails').hide();
+    pdfViewer.adjustPlacement();
+    pdfThumbnails.adjustPlacement();
 
-        $('.hider').addClass('folded-left');
-    }
-    function showthumbs() {
-        $('.thumbnails').show();
-        pdfViewer.adjustPlacement();
-        pdfThumbnails.adjustPlacement();
+    $('.hider').addClass('folded-left');
+}
+function showthumbs() {
+    $('.thumbnails').show();
+    pdfViewer.adjustPlacement();
+    pdfThumbnails.adjustPlacement();
+    $('.hider').removeClass('folded-left');
+}
 
-        $('.hider').removeClass('folded-left');
-    }
-
-    let pdfViewer = new PDFjsViewer($('.pdfpages'), {
-        pageResolution: "4K",
-        calculatePlacement: function() {
-            let $thumbnails = $('.thumbnails');
-            let thwidth = $thumbnails.outerWidth();
-            if (!$thumbnails.is(':visible')) {
-                thwidth = 0;
-            }
-            thwidth += $('.hider').outerWidth();
-            let $toolbar = $(".pdftoolbar");
-            let tbheight = $toolbar.outerHeight() || 0;
-            let $viewerContainer = this.$container.parent();
-            let offset = $viewerContainer.offset();
-            offset.top += tbheight;
-            offset.left += thwidth;
-            offset.width = $viewerContainer.width() - thwidth;
-            offset.height = $viewerContainer.height() - tbheight;
-            return offset;
-        },
-        onZoomChange: function(zoom) {
-            zoom = parseInt(zoom * 10000) / 100;
-            $('.zoomval').text(zoom + '%');
-            let $activepage = this.pages[this.paginaactual];
-            if (!pdfViewer.isPageVisible($activepage)) {
-                pdfViewer.scrollToVisible($activepage);
-            }
-        },
-        onActivePageChanged: function(page) {
-            let pageno = $(page).data('page');
-            updateactivepage(pageno, this.getPageCount());
-        },
-    });
-
-    function updateactivepage(pageno, pagetotal) {
-        pdfThumbnails.setActivePage(pageno);
-        $('.pageno').text(pageno + ' de ' + pagetotal);
-    }
-
-    pdfViewer.loadDocument(PDFFILE).then(function() {
-        pdfViewer.zoomFit();
-    });
-
-    let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
-        zoomFillArea: 0.7,
-        pageResolution: "THUMBNAIL",
-        calculatePlacement: function() {
-            let offset = $('.pdfviewer').offset();
-            let tbheight = $('.pdftoolbar').outerHeight() || 0;
-            if (!this.$container.is(':visible')) {
-                $('.hider').offset({left: offset.left }).height($('.pdfviewer').height() - tbheight);
-                return null;
-            }
-            offset.top += tbheight;
-            offset.width = this.$container.outerWidth();
-            offset.height = $('.pdfviewer').height() - tbheight;
-            $('.hider').offset({left: offset.left + offset.width }).height($('.pdfviewer').height() - tbheight);
-            return offset;
-        },
-        onNewPage: function(page) {
-            page.on('click', function() {
-                pdfViewer.gotoPage(page.data('page'));
-            })
+let pdfViewer = new PDFjsViewer($('.pdfpages'), {
+    zoomValues: [ 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4 ],
+    calculatePlacement: function() {
+        let $thumbnails = $('.thumbnails');
+        let thwidth = $thumbnails.outerWidth();
+        if (!$thumbnails.is(':visible')) {
+            thwidth = 0;
         }
-    });
+        thwidth += $('.hider').outerWidth();
+        let $toolbar = $(".pdftoolbar");
+        let tbheight = $toolbar.outerHeight() || 0;
+        let $viewerContainer = this.$container.parent();
+        let offset = $viewerContainer.offset();
+        offset.top += tbheight;
+        offset.left += thwidth;
+        offset.width = $viewerContainer.width() - thwidth;
+        offset.height = $viewerContainer.height() - tbheight;
+        return offset;
+    },
+    onZoomChange: function(zoom) {
+        zoom = parseInt(zoom * 10000) / 100;
+        $('.zoomval').text(zoom + '%');
+    },
+    onActivePageChanged: function(page) {
+        let pageno = $(page).data('page');
+        updateactivepage(pageno, this.getPageCount());
+    },
+});
 
-    pdfThumbnails.setActivePage = function(pageno) {
-        this.$container.find('.pdfpage').removeClass('selected');
-        let $npage = this.$container.find('.pdfpage[data-page="' + pageno + '"]').addClass('selected');
-        if (!this.isPageVisible($npage)) {
-            this.scrollToVisible($npage);
+function updateactivepage(pageno, pagetotal) {
+    pdfThumbnails.setActivePage(pageno);
+    $('#pageno').val(pageno);
+    $('#pageno').attr('max', pagetotal);
+    $('#pagecount').text('de ' + pagetotal);
+}
+
+pdfViewer.loadDocument(PDFFILE).then(function() {
+    pdfViewer.setZoom("fit");
+});
+
+let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
+    zoomFillArea: 0.7,
+    calculatePlacement: function() {
+        let offset = $('.pdfviewer').offset();
+        let tbheight = $('.pdftoolbar').outerHeight() || 0;
+        if (!this.$container.is(':visible')) {
+            $('.hider').offset({left: offset.left }).height($('.pdfviewer').height() - tbheight);
+            return null;
         }
-    }.bind(pdfThumbnails);
+        offset.top += tbheight;
+        offset.width = this.$container.outerWidth();
+        offset.height = $('.pdfviewer').height() - tbheight;
+        $('.hider').offset({left: offset.left + offset.width }).height($('.pdfviewer').height() - tbheight);
+        return offset;
+    },
+    onNewPage: function(page) {
+        page.on('click', function() {
+            if (!pdfViewer.isPageVisible(page.data('page'))) {
+                pdfViewer.scrollToPage(page.data('page'));
+            }
+        })
+    }
+});
 
-    pdfThumbnails.loadDocument(PDFFILE).then(function() {
-        pdfThumbnails.zoomFit();
-        pdfThumbnails.loadMorePages().catch(error => console.error(error));
-        updateactivepage(pdfViewer.getCurrentPageno(), pdfViewer.getPageCount());
-    });
+pdfThumbnails.setActivePage = function(pageno) {
+    this.$container.find('.pdfpage').removeClass('selected');
+    let $npage = this.$container.find('.pdfpage[data-page="' + pageno + '"]').addClass('selected');
+    if (!this.isPageVisible(pageno)) {
+        this.scrollToPage(pageno);
+    }
+}.bind(pdfThumbnails);
+
+pdfThumbnails.loadDocument(PDFFILE).then(function() {
+    pdfThumbnails.setZoom("fit")
+    let pageno = 1;
+    let activepage = pdfViewer.getActivePage();
+    if (activepage !== null)
+        pageno = activepage.data('page')
+    updateactivepage(pageno, pdfViewer.getPageCount());
+});
 </script>
 </html>

@@ -8,8 +8,8 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
-    <script src="../js/pdfjsviewer.js"></script>
-    <link rel="stylesheet" href="../css/pdfjsviewer.css">
+    <script src="../js/pdfjs-viewer.js"></script>
+    <link rel="stylesheet" href="../css/pdfjs-viewer.css">
     <script>
     // Let's initialize the PDFjs library
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
@@ -46,25 +46,25 @@
     <div class="row h-100">
         <div class="col-12 text-center">
             <h1>Example for PDFjs-viewer</h1>
-            <p>This is a simple document embeded in a div</p>
+            <p>This is a simple document embeded in a div (integrated with bootstrap)</p>
         </div>
         <div class="row w-100 h-50 my-auto">
             <div class="col-6 offset-md-3 pdfviewer p-0">
                 <div class="pdftoolbar text-center row m-0 p-0">
                     <div class="col-12 col-lg-6 my-1">
                         <button class="btn btn-secondary btn-sm btn-first" onclick="pdfViewer.first()"><i class="material-icons-outlined">skip_previous</i></button>
-                        <button class="btn btn-secondary btn-sm btn-prev" onclick="pdfViewer.prev()"><i class="material-icons-outlined">navigate_before</i></button>
+                        <button class="btn btn-secondary btn-sm btn-prev" onclick="pdfViewer.prev(); return false;"><i class="material-icons-outlined">navigate_before</i></button>
                         <span class="pageno"></span>
-                        <button class="btn btn-secondary btn-sm btn-next" onclick="pdfViewer.next()"><i class="material-icons-outlined">navigate_next</i></button>
+                        <button class="btn btn-secondary btn-sm btn-next" onclick="pdfViewer.next(); return false;"><i class="material-icons-outlined">navigate_next</i></button>
                         <button class="btn btn-secondary btn-sm btn-last" onclick="pdfViewer.last()"><i class="material-icons-outlined">skip_next</i></button>
                     </div>
                     <div class="col-12 col-lg-6 my-1">
-                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomOut()"><i class="material-icons-outlined">zoom_out</i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('out')"><i class="material-icons-outlined">zoom_out</i></button>
                         <span class="zoomval">100%</span>
-                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomIn()"><i class="material-icons-outlined">zoom_in</i></button>
-                        <button class="btn btn-secondary btn-sm ms-3" onclick="pdfViewer.zoomWidth()"><i class="material-icons-outlined">swap_horiz</i></button>
-                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomHeight()"><i class="material-icons-outlined">swap_vert</i></button>
-                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.zoomFit()"><i class="material-icons-outlined">fit_screen</i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('in')"><i class="material-icons-outlined">zoom_in</i></button>
+                        <button class="btn btn-secondary btn-sm ms-3" onclick="pdfViewer.setZoom('width')"><i class="material-icons-outlined">swap_horiz</i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('height')"><i class="material-icons-outlined">swap_vert</i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('fit')"><i class="material-icons-outlined">fit_screen</i></button>
                     </div>
                 </div>
                 <div class="pdfpages">
@@ -88,28 +88,23 @@
             let $viewerContainer = this.$container.parent();
             let offset = $viewerContainer.offset();
             offset.top += tbheight;
-            offset.width = $viewerContainer.width();
-            offset.height = $viewerContainer.height() - tbheight;
+            offset.width = $viewerContainer.outerWidth();
+            offset.height = $viewerContainer.outerHeight() - tbheight;
             return offset;
         },
         onZoomChange: function(zoom) {
             zoom = parseInt(zoom * 10000) / 100;
             $('.zoomval').text(zoom + '%');
-
-            console.log(this, this.currentPage);
-            let $activepage = this.pages[this.currentPage];
-            if (!this.isPageVisible($activepage)) {
-                this.scrollToVisible($activepage);
-            }
         },
-        onActivePageChanged: function(page) {
-            let pageno = $(page).data('page');
+        onActivePageChanged: function(page, pageno) {
             $('.pageno').text(pageno + '/' + this.getPageCount());
         },
     });
 
     pdfViewer.loadDocument(PDFFILE).then(function(th) {
-        pdfViewer.zoomFit();
+        // Due to BS initialization, the toolbar loads a bit later, so we'll re-adjust the placement
+        pdfViewer.adjustPlacement();
+        pdfViewer.setZoom('fit');
     });
 </script>
 </html>
