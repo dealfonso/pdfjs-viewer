@@ -1,0 +1,98 @@
+.pdftoolbar {
+    width: 100%;
+    height: 32px;
+    background: #ddd;
+    z-index: 100;
+    vertical-align: middle;
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+.pdftoolbar * {
+    margin: auto 0;
+}
+.pdftoolbar span {
+    margin-right: 0.5em;
+    margin-left: 0.5em;
+    width: 4em !important;
+    font-size: 12px;
+}
+.pdftoolbar button {
+    min-width: 26px;
+    height: 28px;
+    border: none;
+    padding: 2px 4px 0;
+    margin: auto 1px;
+    border-radius: 2px;
+    line-height: 12px;
+    font-size: 14px;
+    background-color: #ddd;
+}
+.pdftoolbar button i {
+    font-size: 26px;
+    padding: 0;
+    margin: 0;
+}
+.pdftoolbar button:hover {
+    background-color: #ccc;
+}
+.pdftoolbar .divider {
+    flex: 1;
+}
+.pdftoolbar .v-sep {
+    width: 0px;
+    height: 20px;
+    border-left: 1px solid #bbb;
+}
+.pdftoolbar .h-sep {
+    width: 100%;
+    height: 0px;
+    border-top: 1px solid #bbb;
+    margin: 0.25em 0;
+}
+
+.pdftoolbar .dropdown.dropdown-right {
+    float: right
+}
+.pdftoolbar .dropdown.dropdown-right .dropdown-content {
+    right: 0;
+    left: auto;
+}
+.pdftoolbar .dropdown-value {
+    background-color: #ccc;
+    padding: 0px 4px 2;
+    cursor: pointer;
+}
+.pdftoolbar .dropdown-value i {
+    width: auto;
+    font-size: 12px;
+}        
+/* Dropdown Content (Hidden by Default) */
+.pdftoolbar .dropdown-content {
+    display: none;
+    position: absolute;
+    margin-top: 0;
+    background-color: #eee;
+    min-width: 10em;
+    z-index: 1;
+    font-size: 12px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.09);
+}
+/* Links inside the dropdown */
+.pdftoolbar .dropdown-content a {
+    color: black;
+    padding: 6px 8px;
+    text-decoration: none;
+    display: flex;
+    cursor: pointer;
+}
+.pdftoolbar .dropdown-content i {
+    font-size: 16px;
+    padding-right: 0.5em;
+}
+.pdftoolbar .dropdown-content a:hover {
+    background-color: #ddd;
+}
+.pdftoolbar .dropdown:hover .dropdown-content, .dropdown .dropdown-content:hover {
+    display: block;
+}
