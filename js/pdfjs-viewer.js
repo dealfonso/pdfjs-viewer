@@ -13,144 +13,104 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+(function(exports, $) {
 
-(function (exports, $) {
-    "use strict";
+    // Class used to help in zoom management; probably it can be moved to the main class, but it is used to group methods
+    class Zoomer {
 
-    /**
-     * jQuery plugin to get the position and size of an element, taking into account the zoom level
-     */
-    $.fn.getRelativeSize = function() {
-        let $this = $(this);
-        let zoom = $this.attr("data-zoom");
-        if (zoom === undefined)
-            zoom = 1;
-        zoom = parseFloat(zoom);
-        let position = $this.position();
-        return { top: position.top / zoom, left: position.left / zoom, width: $this.width() / zoom, height: this.height() / zoom };
-    }
-
-    /**
-     * jQuery plugin to vary the size of an element, according to the zoom level; the position is also updated, if needed
-     */
-     $.fn.zoom = function(zoom) {
-        $(this).each(function() {
-            let $this = $(this);
-            let rel_size = $this.getRelativeSize();
-
-            if (["absolute", "fixed"].indexOf($this.css('position')) !== -1) {
-                let poffset = $this.parent().offset();
-                $this.offset({left: poffset.left + (rel_size.left * zoom), top: poffset.top + (rel_size.top * zoom)});
-            }
-
-            $this.width(rel_size.width * zoom);
-            $this.height(rel_size.height * zoom);
-            $this.attr("data-zoom", zoom);
-        })
-    }        
-
-    /** Class to manage zoom operations for the PDF viewer */
-    class Zoom {
-        constructor($container, options) {
+        /**
+         * Construct the helper class
+         * @param {PDFjsViewer} viewer - the viewer object
+         * @param {*} options - the options object
+         */
+        constructor(viewer, options = {}) {
             let defaults = {
-                // Possible values for zoom
-                values: [ 0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8, 16, 32 ],
-
-                // Function called when the zoom changes
-                onZoomChange: () => {},
-
-                // Function used to get the page that is being displayed. The function should return a jQuery object
-                //   the function is called if the zoom is set to a value relative to the page (i.e. "width", "height" or "fit")
-                getCurrentPage: () => null,
-
-                // Amount of space to fill when zooming to a page
+                // The possible zoom values to iterate through using "in" and "out"
+                zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
+                // The area to fill the container with the zoomed pages
                 fillArea: 0.9,
             }
-            this.settings = $.extend({}, defaults, options);
-
-            // The current zoom value
+    
+            // The current zooom value
             this.current = 1;
-
-            // The container
-            this.$container = $container;
+            // The viewer instance whose pages may be zoomed
+            this.viewer = viewer;
+            // The settings
+            this.settings = $.extend(defaults, options);
+            
+            // Need having the zoom values in order
+            this.settings.zoomValues = this.settings.zoomValues.sort();
         }
-
-        /** Function to zoom all the elements (gets the current value and calculates the nearest value in the list). Then
-         *    if "up" is true, it will apply the next zoom level; otherwise it will apply the previous zoom level.
-         *  @param {boolean} up - If true, it will apply the next zoom level; otherwise it will apply the previous zoom level.
-         */
-        zoom(up = false) {
-            let diffzoom = this.current;
-            let i_zoom = 0;
-            for (let i=0; i<this.settings.values.length; i++) {
-                if (Math.abs(this.settings.values[i] - this.current) < diffzoom) {
-                    diffzoom = Math.abs(this.settings.values[i] - this.current);
-                    i_zoom = i;
-                }
-            }
-            i_zoom += up?1:-1;
-            i_zoom = Math.max(0, Math.min(this.settings.values.length - 1, i_zoom));
-            this.apply(this.settings.values[i_zoom]);
-        }
-        /** Function that applies an arbitrary amount of zoom to any element that has a 'data-zoom' attribute. This function
-         *    makes use of $.fn.zoom function, so it adjusts the relative position and size of any element. At the end,
-         *    it calls the onZoomChange function, if it is defined.
-         *    @param {number} zoom - The zoom value to apply
-         */
-        apply(zoom = null) {
-            this.current = this.get(zoom);
-            let height = this.$container.height();
-
-            // Hacemos zoom en las paginas y en la seleccion (si la hay, porque tendran un zoom asignado)
-            this.$container.find("[data-zoom]").zoom(this.current);
-
-            // Ajustamos la posicion del scroll de acuerdo a lo que ha crecido el wrapper
-            let height_ratio = this.$container.height() / height;
-            this.$container.get(0).scrollTop = this.$container.get(0).scrollTop * height_ratio;
-
-            // Llamamos al callback de cambio de zoom
-            if (typeof this.settings.onZoomChange === 'function') {
-                this.settings.onZoomChange(this.current);
-            }
-        }
-        /**
-         * Sanitizes a value of zoom: if null, the function returns the current zoom value; if undefined, will return 1, if set to
-         *    a relative value to the page (i.e. "width" or "height" or "fit"), will calculate the appropriate zoom value; otherwise,
-         *    will return the value as is.
-         * @param {number} zoom the zoom value
-         * @returns the sanitized zoom value
-         */
+    
+        /** Translates a zoom value into a float value; possible values:
+         * - a float value
+         * - a string with a keyword (e.g. "width", "height", "fit", "in", "out")
+         * @param {number} zoom - the zoom value to be translated
+         * @return {number} The zoom value
+        */
         get(zoom = null) {
-            if (zoom === null)
-                zoom = this.current;
-
-            if (zoom === undefined)
-                zoom = 1;
-
-            if ((zoom == "width") || (zoom == "height") || (zoom == "fit")) {
-                let $currentpage = this.settings.getCurrentPage.call(this);
-                if (($currentpage === undefined) || ($currentpage === null) || ($currentpage.length === 0))
-                    return 1;
-                let $wrapper = this.$container;
-                switch (zoom) {
-                    case "width":
-                        return ($wrapper.width() * this.settings.fillArea) / parseFloat($currentpage.data('width'));
-                    case "height":
-                        return ($wrapper.height() * this.settings.fillArea) / parseFloat($currentpage.data('height'));
-                    default:
-                        return Math.min($wrapper.width() * this.settings.fillArea / parseFloat($currentpage.data('width')), $wrapper.height() * this.settings.fillArea / parseFloat($currentpage.data('height')))
-                }
+            // If no zoom is specified, return the current one
+            if (zoom === null) {
+                return this.current;
             }
-            return parseFloat(zoom);
-        }        
+            // If it is a number, return it
+            if (parseFloat(zoom) == zoom) {
+                return zoom;
+            } 
+            let $activepage = this.viewer.getActivePage();
+            let zoomValues = [];
+            // If it is a keyword, return the corresponding value
+            switch(zoom) {
+                case "in":
+                    zoom = this.current;
+                    zoomValues = this.settings.zoomValues.filter((x) => x > zoom);
+                    if (zoomValues.length > 0) {
+                        zoom = Math.min(...zoomValues);
+                    }
+                    break;
+                case "out":
+                    zoom = this.current;
+                    zoomValues = this.settings.zoomValues.filter((x) => x < zoom);
+                    if (zoomValues.length > 0) {
+                        zoom = Math.max(...zoomValues);
+                    }
+                    break;
+                case "fit":
+                    zoom = Math.min(this.get("width"), this.get("height"));
+                    break;
+                case "width":
+                    zoom = this.settings.fillArea * this.viewer.$container.width() / $activepage.data("width");
+                    break;
+                case "height":
+                    zoom = this.settings.fillArea * this.viewer.$container.height() / $activepage.data("height");
+                    break;
+                default:
+                    zoom = this.current;
+                    break;
+            }
+            return zoom;
+        }
+    
+        /**
+         * Sets the zoom value to each page (changes both the page and the content div); relies on the data-values for the page
+         * @param {number} zoom - the zoom value to be set
+         */
+        zoomPages(zoom) {
+            zoom = this.get(zoom);
+            this.viewer.getPages().forEach(function(page) {
+                let $page = page.$div;
+                let c_width = $page.data("width");
+                let c_height = $page.data("height");
+    
+                $page.width(c_width * zoom).height(c_height * zoom);
+                $page.data('zoom', zoom);
+                $page.find(`.${this.viewer.settings.contentClass}`).width(c_width * zoom).height(c_height * zoom);
+            }.bind(this));
+            this.current = zoom;
+        }
     }
 
     class PDFjsViewer {
-        lastPage = 0;
-        currentPage = 1;
-        settings = {};
-        zoom = null;
-
         /**
          * Constructs the object, and initializes actions:
          *   - add the scroll handler to the container
@@ -160,25 +120,24 @@
          * @param {dictionary} options options for the viewer
          */
         constructor($container, options = {}) {
-
+    
             let defaults = {
-                // Whether to enable zoom or not
-                enableZoom: true,
-                // The class used for each page
+                visibleThreshold: 0.5,
+                extraPagesToLoad: 3,
+                // The class used for each page (the div that wraps the content of the page)
                 pageClass: "pdfpage",
-                // The target resolution to render the images; it can be a string and it will be adjusted to the standard value: "FHD", "HD", "SD", "4K", "THUMBNAIL"
-                pageResolution: {
-                    width: 1920,
-                    height: 1080
-                },
+                // The class used for the content of each page (the div that contains the page)
+                contentClass: "content-wrapper",
                 // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
-                onNewPage: (page) => {},
+                onNewPage: (page, i) => {},
+                // Function called when a page is rendered
+                onPageRender: (page, i) => {},
                 // Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
                 errorPage: () => {
                     $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
                 },
-                // Posible zoom values
-                zoomValues: [ 0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8, 16, 32 ],
+                // Posible zoom values to iterate over using "in" and "out"
+                zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
                 // Function called when the zoom level changes (it receives the zoom level)
                 onZoomChange: (zoomlevel) => {},
                 // Function used to calculate the placement of the container of the pdf pages. Called by the function "adjustPlacement". 
@@ -192,115 +151,130 @@
                     return offset;
                 },
                 // Function called whenever the active page is changed (the active page is the one that is shown in the viewer)
-                onActivePageChanged: (page) => {},
+                onActivePageChanged: (page, i) => {},
                 // Percentage of the container that will be filled with the page
-                zoomFillArea: 0.9,
+                zoomFillArea: 0.95,
+                // Function called to get the content of an empty page
+                emptyContent: () => $('<div class="loader"></div>')
             }
-            
-            $.extend(this.settings, defaults, options);
-
-            // Adjust the resolution to the standard values
-            if (typeof this.settings.pageResolution === "string") {
-                switch (this.settings.pageResolution) {
-                    case "FHD":
-                        this.settings.pageResolution = {
-                            width: 1920,
-                            height: 1080
-                        };
-                        break;
-                    case "HD":
-                        this.settings.pageResolution = {
-                            width: 1280,
-                            height: 720
-                        };
-                        break;
-                    case "SD":
-                        this.settings.pageResolution = {
-                            width: 640,
-                            height: 480
-                        };
-                        break;
-                    case "4K":
-                        this.settings.pageResolution = {
-                            width: 3840,
-                            height: 2160
-                        };
-                        break;
-                    case "8K":
-                        this.settings.pageResolution = {
-                            width: 7680,
-                            height: 4320
-                        };
-                        break;
-                    case "THUMBNAIL":
-                        this.settings.pageResolution = {
-                            width: 320,
-                            height: 240
-                        };
-                        break;
-                    default:
-                        this.settings.pageResolution = {
-                            width: 1920,
-                            height: 1080
-                        };
-                        break;
-                }
-            }
-
-            // Create the zoom manager, if needed
-            if (this.settings.enableZoom) {
-                this.zoom = new Zoom($container, {
-                    values: this.settings.zoomValues,
-                    onZoomChange: function (current) {
-                        if (typeof this.settings.onZoomChange === 'function') {
-                            this.settings.onZoomChange.call(this, current);
-                        }
-                        this.loadMorePages().catch(error => {console.error(error)});
-                    }.bind(this),
-                    getCurrentPage: function() {
-                        return this.getCurrentPage()
-                    }.bind(this),
-                    fillArea: this.settings.zoomFillArea
-                });
-            }
-
+    
+            this.settings = $.extend(defaults, options);
+    
+            // Create the zoomer helper
+            this._zoom = new Zoomer(this, {
+                zoomValues: this.settings.zoomValues,
+                fillArea: this.settings.zoomFillArea,
+            });
+    
             // Store the container
             this.$container = $container;
-
+    
             // Add a reference to this object to the container
             $container.get(0)._pdfjsViewer = this;
-
+    
+            // Add the event listeners
             this.__setScrollListener();
             this.__setResizeListener();
+        }    
+    
+        /**
+         * Sets the current zoom level and applies it to all the pages
+         * @param {number} zoom the desired zoom level, which will be a value (1 equals to 100%), or the keywords 'in', 'out', 'width', 'height' or 'fit'
+         */
+        setZoom(zoom) {
+            let container = this.$container.get(0);
+
+            // Get the previous zoom and scroll position
+            let prevzoom = this._zoom.current;
+            let prevScroll = {
+                top: container.scrollTop,
+                left: container.scrollLeft
+            };
+
+            // Now zoom the pages
+            this._zoom.zoomPages(zoom);
+
+            // Update the scroll position (to match the previous one), according to the new relationship of zoom
+            container.scrollLeft = prevScroll.left * this._zoom.current / prevzoom;
+            container.scrollTop = prevScroll.top * this._zoom.current / prevzoom;
+
+            // Force to redraw the visible pages to upgrade the resolution
+            this._visiblePages(true);
+
+            // Call the callback (if provided)
+            if (typeof this.settings.onZoomChange === "function")
+                this.settings.onZoomChange.call(this, this._zoom.current);
         }
-        
+    
+        /**
+         * Obtain the current zoom level
+         * @returns {number} the current zoom level
+         */
+        getZoom() {
+            return this._zoom.current;
+        }
+    
+        /**
+         * Function that removes the content of a page and replaces it with the empty content (i.e. a content generated by function emptyContent)
+         *   such content will not be visible except for the time that the 
+         * @param {jQuery} $page the page to be emptied
+         */
+        _cleanPage($page) {
+            let $emptyContent = this.settings.emptyContent();
+            $page.find(`.${this.settings.contentClass}`).empty().append($emptyContent)
+        }
+    
+        /**
+         * Function that replaces the content with the empty class in a page with a new content
+         * @param {*} $page the page to be modified
+         * @param {*} $content the new content that will be set in the page
+         */
+        _setPageContent($page, $content) {
+            $page.find(`.${this.settings.contentClass}`).empty().append($content)
+        }
+
+        /**
+         *  Recalculates which pages are now visible and forces redrawing them (moreover it cleans those not visible) 
+        */
+        refreshAll() {
+            this._visiblePages(true);
+        }
+    
         /** Function that creates a scroll handler to update the active page and to load more pages as the scroll position changes */
         __setScrollListener() {
             // Create a scroll handler that prevents reentrance if called multiple times and the loading of pages is not finished
             let scrollLock = false;
-
-            this.__scrollHandler = function() {
-                // Avoid re-enterntrance for the same event while loading pages
+            let scrollPos = { top:0 , left:0 };
+    
+            this.__scrollHandler = function(e) {
+                // Avoid re-entrance for the same event while loading pages
                 if (scrollLock === true) {
                     return;
                 }
                 scrollLock = true;
-
-                // Calculate the current page and load more pages if needed
-                this.updateActivePage();
-                this.loadMorePages().then(function() {
-                    scrollLock = false;
-                });
+    
+                let container = this.$container.get(0);
+                
+                if ((Math.abs(container.scrollTop - scrollPos.top) > (this._height * 0.2 * this._zoom.current)) ||
+                    (Math.abs(container.scrollLeft - scrollPos.left) > (this._width * 0.2 * this._zoom.current))) {
+                    scrollPos = {
+                        top: container.scrollTop,
+                        left: container.scrollLeft
+                    }
+                    this._visiblePages();
+                }
+    
+                scrollLock = false;
             }.bind(this);
-
+    
             // Set the scroll handler
             this.$container.off('scroll');
             this.$container.on('scroll', this.__scrollHandler);            
-        }
-
-        /** Function that creates a handler for the onResize event in the window, so that the viewer can be resized
-         *    if the parent container is resized. The handler relies on the function "calculatePlacement" to calculate 
-         *    the new size and position of the viewer.
+        }    
+        /** 
+         * Function that creates a handler for the onResize event in the window, so that the viewer can be resized
+         *   if the parent container is resized. The handler relies on the function "calculatePlacement" to calculate 
+         *   the new size and position of the viewer.
          */
         __setResizeListener() {
             this.__resizeListener = function() {
@@ -316,7 +290,7 @@
                     }
                 }
             }.bind(this);
-
+    
             // Now set the handler and force the call to adjust initial placement, when the document is available
             window.addEventListener('resize', this.__resizeListener);
             let self = this;
@@ -324,427 +298,406 @@
                 self.adjustPlacement();
             });
         }
-
-        /**
-         * Function that returns true if the page is visible in the container (at least, in a half of the page)
-         * @param {jQuery} $page 
-         * @returns true if the page is visible in the container; false otherwise
-         */
-        isPageVisible($page) {
-            if (($page === undefined) || ($page === null)) {
-                return false;
-            }
-            let height = this.$container.height();
-            let offset = $page.offset();
-            if (offset === undefined) {
-                return false;
-            }
-
-            // Adjust the offset depending of the position of the parent (i.e. the container)
-            let p_offset = this.$container.offset();
-            offset.top -= p_offset.top;
-
-            // If the amount of page visible is inside the container (i.e. at least, the half of the page), return true
-            let page_y0 = Math.min(Math.max(offset.top, 0), height);
-            let page_y1 = Math.min(Math.max($page.height() + offset.top, 0), height);
-            return ((page_y1 - page_y0) > ($page.height() / 2));
-        }
-
-        /**
-         * Tries to identify which is the page that is active in the viewer: it is the one that has more visible area in the container
-         * @returns {jQuery} the page that is active in the viewer
-         */
-        getCurrentPage() {
-            let currentPage = null;
-            let height = this.$container.height();
-            let page_in_max = -1;
-            this.$container.find(`.${this.settings.pageClass}`).each(function(e) {
-                let offset = $(this).offset();
-                let p_offset = $(this).parent().offset();
-                offset.top -= p_offset.top;
-
-                let page_y0 = Math.min(Math.max(offset.top, 0), height);
-                let page_y1 = Math.min(Math.max($(this).height() + offset.top, 0), height);
-                let page_in = page_y1 - page_y0;
-
-                if (page_in > page_in_max) {
-                    currentPage = $(this);
-                    page_in_max = page_in;
-                }
-            })            
-            return currentPage;
-        }
-
-        /**
-         * Function that updates the active page in the viewer and obtains its number
-         */
-        updateActivePage() {
-            let $activepage = this.getCurrentPage();
-            let activepage = $activepage.data('page');
-            if (activepage !== this.currentPage) {
-                this.currentPage = activepage;
-                if (typeof this.settings.onActivePageChanged === 'function') {
-                    this.settings.onActivePageChanged.call(this, $activepage);
-                }
-            }
-        }
-
-        /**
-         * Function that renders one page in a div (calculating the resolution and the size of the page)
-         * @param {*} page the pdfjs page object
-         * @param {number} i the number of the page
-         * @returns {*} a promise that will return the div that contains the page
-         */
-        __renderPage(page, i) {
-            // TODO: review the target resolution, because at this time, the resulting div will have the size of the page in points (e.g a PDF is 800 points wide, the
-            //       div will have the size of the page in pixels); but the real size of the page is the desired size (it is available for zooming). Revise whether it
-            //       has sense or not, according to the zoom levels (now I think that it has sense, but I have the doubt)
-
-            // Prepare a canvas to render the image
-            let $canvas = $('<canvas></canvas>');
-            let canvas = $canvas.get(0);
-
-            // Calculate the scale to render the page, according to the settings of the users
-            let scale = 4;
-            var viewport = page.getViewport({scale:1});
-            let h_ratio = this.settings.pageResolution.height / viewport.height;
-            let w_ratio = this.settings.pageResolution.width / viewport.width;
-            scale = Math.max(h_ratio, w_ratio);
-            
-            // Render the page, using the scale
-            viewport = page.getViewport({scale: scale});
-            var context = canvas.getContext('2d');
-
-            // TODO: Calculate the pixel ratio of the device
-            // let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
-            let pixel_ratio = 1;
-
-            // Create the holding div, with some parameters
-            let $div = $(`<div id="page-${i}" data-page="${i}" data-scale="${scale}" data-width="${viewport.width / scale}" data-height="${viewport.height /scale}"></div>`).addClass(this.settings.pageClass).append($(canvas));
-
-            // Prepare the div and canvas to hold the rendered page
-            $div.height(viewport.height);
-            $div.width(viewport.width);
-            canvas.height = viewport.height * pixel_ratio;
-            canvas.width = viewport.width * pixel_ratio;
-            canvas.getContext("2d").scale(pixel_ratio, pixel_ratio);
-
-            var renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-
-            // Render the page
-            return page.render(renderContext).promise.then(function() {
-                // Resize the div to the size of the page
-                $div.width($div.width() / scale).height($div.height() / scale)
-                this.pages[i] = $div;
-                return this.pages[i];
-            }.bind(this));
-        }
-
-        /**
-         * Returns the number of pages of the pdf document
-         * @returns number of pages
-         */
-        getPageCount() {
-            if (this.pdf === null)
-                return 0;
-            return this.pdf.numPages;
-        }
-
-        /**
-         * Gets the page number of the page that is currently active in the viewer, as being update with updateActivePage.
-         *   This function is called during the scroll
-         * @returns the number of the page that is currently active in the viewer
-         */
-        getCurrentPageno() {
-            return this.currentPage;
-        }
-
-        /**
-         * Loads one page by its number
-         * @param {number} i the number of the page to load
-         * @returns {*} a promise to render the page that has been loaded 
-         */
-        __loadPage(i = 1) {
-            if (this.pdf === null) 
-                return false;
-            if (i > this.pdf.numPages) {
-                return false;
-            }
-            if (i < 1) {
-                return false;
-            }
-            if (this.pages[i] !== undefined) {
-                return new Promise(function() { return this.pages[i] }.bind(this));
-            }
-            
-            return this.pdf.getPage(i).then(function(page) {
-                return this.__renderPage(page, i);
-            }.bind(this));
-        }
-
-        /**
-         * Function that removes any page from the viewer and reders the error page (if provided a function)
-         */
-        __showErrorPage() {
-            this.$container.find(`.${this.settings.pageClass}`).remove();
-            if (typeof this.settings.errorPage === "function") {
-                let $errorpage = this.settings.errorPage.call(this);
-                this.$container.append($errorpage);
-            }
-        }
-
-        /**
-         * Function that inserts the page in the viewer, in the appropriate position (according to the page number)
-         * @param {jQuery} page 
-         * @returns 
-         */
-        __addPage(page) {
-            // Check wether the page already exists or not
-            let pageno = page.data('page');
-            if (this.$container.find(`.${this.settings.pageClass}[data-page="${pageno}"]`).length > 0) {
-                console.warning(`page ${pageno} already exists`);
-                return;
-            }
-
-            // Pages are being added in order, but this methos makes sure that the page is placed wherever it needs to be placed
-            let prevpageno = pageno - 1;
-            let $prevpage = this.$container.find(`.${this.settings.pageClass}[data-page="${prevpageno}"]`);;
-            while ((prevpageno > 1) && ($prevpage.length === 0)) {
-                prevpageno--;
-                $prevpage = this.$container.find(`.${this.settings.pageClass}[data-page="${prevpageno}"]`);
-            }
-
-            // If it is the first page, will be placed the first in the container; otherwise, it will be placed after the page before
-            if ($prevpage.length === 0) {
-                page.prependTo(this.$container);
-            } else {
-                $prevpage.after(page);
-            }
-
-            // As it is a new page, let's update the zoom for the page (so that it will have the data-zoom attribute)
-            if (this.zoom !== null) {
-                page.zoom(this.zoom.current);
-            }
-
-            // Now call the callback (if provided)
-            if (typeof this.settings.onNewPage === 'function') {
-                this.settings.onNewPage.call(this, page);
-            }
-        }
-        
-        /**
-         * Loads the document from the specified URL
-         * @param {*} the URL of the pdf file
-         * @returns a promise to load the pdf file
-         */
-        async loadDocument(document) {
-            // Now prepare a placeholder for the pages
-            this.pages = [];
-
-            // Remove all the pages
-            this.$container.find(`.${this.settings.pageClass}`).remove();
-
-            // Let's free the pdf file (if there was one before), and rely on the garbage collector to free the memory
-            this.pdf = null;
-
-            // Load the task and return the promise to load the document
-            let loadingTask = pdfjsLib.getDocument(document);
-            return loadingTask.promise.then(function(pdf) {
-                this.pdf = pdf;
-                this.lastPage = 0;
-                this.currentPage = 0;
-                return this.loadMorePages(true).then(function() {
-                    this.updateActivePage();
-                }.bind(this));
-            }.bind(this)).catch(function(error) {
-                this.__showErrorPage();
-                console.log(error);
-            }.bind(this));
-        }
-
         /**
          * This function adjusts the placement of the viewer, according to the calculatePlacement function provided by the user
          *   * the default function makes the viewer to cover all the parent's area
          */
         adjustPlacement() {
+            // Force the execution of the handler to resize the viewer and store the width and height
             this.__resizeListener();
+            this._width = this.$container.width();
+            this._height = this.$container.height();
         }
 
-        /** This function checks whether it is needed to load more pages or not, according to the current position of the
-         *    scroll in the viewer: if the scroll position is the maximum, it will load the next page (if there is one)
-         *  @param {boolean} force if true, will load the next page even if the scroll position is not the maximum
-         *  @returns a promise to load the next page(s)
-        */
-        async loadMorePages(force = false) {
-            // TODO: check whether the function has to deal with reentrance
-
-            // If the document is not loaded, the promise will be rejected
-            if (this.pdf === null) {
-                return Promise.reject(`No document has been loaded`);
+        /**
+         * Function that creates the pageinfo structure for one page, along with the skeleton to host the page (i.e. <div class="page"><div class="content-wrapper"></div></div>)
+         *   If the page is a pageinfo, the new pageinfo structure will not rely on the size (it will copy it, but it won't be marked as loaded). If it is a page, the size will
+         *   be calculated from the viewport and it will be marked as loaded.
+         *   This is done in this way, because when creating the pages in the first time, they will be created assuming that they are of the same size than the first one. If they
+         *   are not, the size will be adjusted later, when the pages are loaded.
+         * 
+         * @param {*} page - the pageinfo (or the page) from which to create the pageinfo structure
+         * @param {*} i - the number of the page to be created
+         * @returns pageinfo - the pageinfo structure for the page
+         */
+        _createSkeleton(page, i) {
+            let pageinfo = {
+                $div: null,
+                width: 0,
+                height: 0,
+                loaded: false,
+            };
+    
+            // If it is a page, the size will be obtained from the viewport; otherwise, it will be copied from the provided pageinfo
+            if (page.getViewport !== undefined) {
+                let viewport = page.getViewport({scale:1});
+                pageinfo.width = viewport.width;
+                pageinfo.height = viewport.height;
+                pageinfo.loaded = true;
+            } else {
+                pageinfo.width = page.width;
+                pageinfo.height = page.height;
             }
+            console.assert(((pageinfo.width > 0) && (pageinfo.height > 0)), "Page width and height must be greater than 0");
+    
+            // Now create the skeleton for the divs
+            pageinfo.$div = $(`<div id="page-${i}">`)
+                .attr('data-page', i)
+                .data('width', pageinfo.width)
+                .data('height', pageinfo.height)
+                .data('zoom', this._zoom.current)
+                .addClass(this.settings.pageClass)
+                .width(pageinfo.width)
+                .height(pageinfo.height);
 
-            let wrapper = this.$container.get(0);
-            let loadedPage = null;
+            let $content = $(`<div class="${this.settings.contentClass}">`)
+                .width(pageinfo.width)
+                .height(pageinfo.height);
 
-            // If the scroll position is the maximum, load the next page (or if the loading is forced)
-            if (force || (wrapper.offsetHeight + wrapper.scrollTop >= wrapper.scrollHeight)) {
-                if (this.lastPage < this.pdf.numPages) {
-                    this.lastPage++;
-                    loadedPage = this.__loadPage(this.lastPage).then(function(page) {
-                        // Once the page has been loaded, let's add it to the viewer and check whether have to load more pages
-                        this.__addPage(page);
-                        return this.loadMorePages().then(function(res) {
-                            // If there is no more pages, simply return the just loaded page; otherwise, return the
-                            //   promise to load the next page(s)
-                            if (res === true) {
-                                return page;
-                            } else {
-                                return res;
-                            }
-                        }).catch(error => console.log(error));
-                    }.bind(this));
+            pageinfo.$div.append($content);
+            
+            // Clean the page (i.e. put the empty content, etc.)
+            this._cleanPage(pageinfo.$div);
+            
+            return pageinfo;
+        }
+    
+        /**
+         * This function places the page.$div in the container, according to its page number (i.e. it searches for the previous page and puts this page after)
+         *   * in principle, this method sould not be needed because all the pages are put in order; but this is created just in case it is needed in further versions
+         * @param {*} pageinfo - the pageinfo structure for the page (needs a valid $div)
+         * @param {*} i - the number of the page
+         */
+        _placeSkeleton(pageinfo, i) {
+            let prevpage = i - 1;
+            let $prevpage = null;
+            while ((prevpage>0) && (($prevpage = this.$container.find(`.${this.settings.pageClass}[data-page="${prevpage}"]`)).length === 0)) {
+                prevpage--;
+            }
+            if (prevpage === 0) {
+                this.$container.append(pageinfo.$div);
+            }
+            else {
+                $prevpage.after(pageinfo.$div);
+            }
+        }
+    
+        /**
+         * Creates the initial skeletons for all the pages, and places them into the container
+         * @param {page/pageinfo} pageinfo - the initial pageinfo (or page) structure
+         */
+        _createSkeletons(pageinfo) {
+            for (let i = 1; i <= this.pageCount; i++) {
+                if (this.pages[i] === undefined) {
+
+                    // Create the pageinfo structure, store it and place it in the appropriate place (the next page will be created similar to the previous one)
+                    pageinfo = this._createSkeleton(pageinfo, i);
+                    this.pages[i] = pageinfo;
+                    this._placeSkeleton(pageinfo, i);
+    
+                    // Call the callback function (if provided)
+                    if (typeof this.settings.onNewPage === "function") {
+                        this.settings.onNewPage.call(this, pageinfo.$div, i);
+                    }
                 }
             }
-
-            // If there was no need to load more pages, simply resolve the promise to true
-            if (loadedPage === null) {
-                return true;
-            } else {
-                return loadedPage;
-            }
         }
-
-        /** Function that loads a page, using its page number, and scrolls to it
-         *    - At the moment, the function loads all the pages up to the desired page number
-         *    @param {number} pagei the page number to load
-         */
-        async gotoPage(pagei = -1) {
-            if (this.pdf === null) {
-                return Promise.reject(`No document has been loaded`);
-            }
-
-            // Adjust the page number to the available range
-            if (pagei <= 0) {
-                pagei = this.currentPage;
-            }
-            if (pagei > this.pdf.numPages) {
-                pagei = this.pdf.numPages;
-            }
-
-            // If the page is not found, we'll load more pages until the page is there
-            let $page = this.$container.find(`.${this.settings.pageClass}[data-page="${pagei}"`);
-            let error = false;
-            while (($page.length === 0) && (!error)) {
-                await this.loadMorePages(true).catch(function() {
-                    error = true;
-                })
-                $page = this.$container.find(`.${this.settings.pageClass}[data-page="${pagei}"`);
-            }
-            if (error) {
-                console.error(`Error while going to page ${pagei}`);
-                return null;
-            }
-            this.scrollToVisible($page);
-            return $page;
-        }
-        
+    
         /**
-         * Sets the scroll of the container of pages to make that the specified page is visible
-         * @param {jQuery} $page the page to put in top of the sroll
+         * Function to set the active page, and calling the callback (if provided)
+         * @param {*} i - the number of the page to set active
          */
-        scrollToVisible($page) {
-            if (($page === undefined) || ($page === null)) {
+        _setActivePage(i) {
+            if (this._activePage !== i) {
+                this._activePage = i;
+                if (typeof this.settings.onActivePageChanged === "function")
+                    this.settings.onActivePageChanged.call(this, this.getActivePage(), i);
+            }
+        }
+    
+        /**
+         * Obtains the area of a div that falls in the viewer
+         * @param {*} $page - div whose area is to be calculated
+         * @returns the visible area
+         */
+        _areaOfPageVisible($page) {
+            let c_width = this.$container.width();
+            let c_height = this.$container.height();
+            let position = $page.position();
+            position.bottom = position.top + $page.outerHeight();
+            position.right = position.left + $page.outerWidth();
+            let page_y0 = Math.min(Math.max(position.top, 0), c_height);
+            let page_y1 = Math.min(Math.max($page.outerHeight() + position.top, 0), c_height);
+            let page_x0 = Math.min(Math.max(position.left, 0), c_width);
+            let page_x1 = Math.min(Math.max($page.outerWidth() + position.left, 0), c_width);
+            let vis_x = page_x1 - page_x0;
+            let vis_y = page_y1 - page_y0;
+            return (vis_x * vis_y);
+        }
+
+        /**
+         * Function that returns true if the page is considered to be visible (the amount of visible area is greater than the threshold)
+         * @param {*} i - the number of page to check
+         * @returns true if the page is visible
+         */
+        isPageVisible(i) {
+            let $page = i;
+            if (typeof i === "number") {
+                if (this.pages[i] === undefined)
+                    return false;
+                $page = this.pages[i].$div;
+            }
+            return this._areaOfPageVisible($page) > ($page.outerWidth() * $page.outerHeight() * this.settings.visibleThreshold);
+        }
+
+        /**
+         * Function that calculates which pages are visible in the viewer, draws them (if not already drawn), and clears those not visible
+         * @param {*} forceRedraw - if true, the visible pages will be redrawn regardless of whether they are already drawn (useful for zoom changes)
+         */
+        _visiblePages(forceRedraw = false) {
+
+            // Get the offset for the container
+            let coffset = this.$container.offset();
+            coffset.width = this.$container.width();
+            coffset.height = this.$container.height();
+    
+            // Will grab the page with the greater visible area to set it as active
+            let max_area = 0;
+            let i_page = null;
+    
+            // Calculate the visible area for each page and consider it visible if the visible area is greater than 0
+            let $visibles = this.pages.filter(function(pageinfo) {
+                let areaVisible = this._areaOfPageVisible(pageinfo.$div);
+                if (areaVisible > max_area) {
+                    max_area = areaVisible;
+                    i_page = pageinfo.$div.data('page');
+                }
+                return areaVisible > 0;
+            }.bind(this)).map((x) => x.$div);
+    
+            // Set the active page
+            this._setActivePage(i_page);
+    
+            // Now get the visible pages
+            let visibles = $visibles.map((x) => $(x).data('page'));
+    
+            // Now will add some extra pages (before and after) the visible ones, to have them prepared in case of scroll
+            let minVisible = Math.min(...visibles);
+            let maxVisible = Math.max(...visibles);
+            for (let i = Math.max(1, minVisible - this.settings.extraPagesToLoad) ; i < minVisible ; i++) {
+                if (!visibles.includes(i)) 
+                    visibles.push(i)
+            }
+            for (let i = maxVisible + 1; i <= Math.min(maxVisible + this.settings.extraPagesToLoad, this.pdf.numPages); i++) {
+                if (!visibles.includes(i)) 
+                    visibles.push(i)
+            }
+    
+            // Now will draw the visible pages, but if not forcing, will only draw those that were not visible before
+            let nowVisibles = visibles;
+            if (! forceRedraw) {
+                nowVisibles = visibles.filter(function (x) { 
+                    return !this._visibles.includes(x) 
+                }.bind(this));
+            }
+    
+            // Get the pages that were visible before, that are not visible now, and clear them
+            this._visibles.filter(function (x) { 
+                return !visibles.includes(x) 
+            }).forEach(function (i) {
+                this._cleanPage(this.pages[i].$div);
+            }.bind(this))
+    
+            // Store the new visible pages
+            this._visibles = visibles;
+    
+            // And now we'll queue the pages to load
+            this.loadPages(...nowVisibles);
+        }
+
+        /**
+         * Function queue a set of pages to be loaded; if not loading, the function starts the loading worker
+         * @param  {...pageinfo} pages - the pages to load
+         */
+        loadPages(...pages) {
+            this._pagesLoading.push(...pages);
+            if (this._loading) {
+                return;
+            }
+            this._loadingTask();
+        }
+
+        /**
+         * Function that gets the pages pending to load and renders them sequentially (to avoid multiple rendering promises)
+         */
+         _loadingTask() {
+            this._loading = true;
+            if (this._pagesLoading.length > 0) {
+                let pagei = this._pagesLoading.shift();                
+                this.pdf.getPage(pagei).then(function(page) {
+                    // Render the page and update the information about the page with the loaded values
+                    this._renderPage(page, pagei);
+                }.bind(this)).then(function(pageinfo) {
+                    // Once loaded, we are not loading anymore
+                    if (this._pagesLoading.length > 0) {
+                        this._loadingTask();
+                    }
+                }.bind(this));
+            }
+            // Free the loading state
+            this._loading = false;
+        }        
+    
+        /**
+         * Function that sets the scroll position of the container to the specified page
+         * @param {*} i - the number of the page to set the scroll position
+         */
+        scrollToPage(i) {
+            if (this.pages[i] === undefined) {
+                return;
+            }
+            let $page = this.pages[i].$div;
+            if ($page.length === 0) {
+                console.warn(`Page ${i} not found`);
                 return;
             }
             let position = $page.position();
             if (position !== undefined) {
                 this.$container.get(0).scrollTop = this.$container.get(0).scrollTop + position.top;
+                this.$container.get(0).scrollLeft = this.$container.get(0).scrollLeft + position.left;
             }
+            this._setActivePage(i);
         }
+
         /**
-         * Go to the next page
+         * Function that renders the page in a canvas, and sets the canvas into the $div
+         * @param {*} page - the page to be rendered
+         * @param {*} i - the number of the page to be rendered
+         * @returns a promise to render the page (the result of the promise will be the pageinfo)
          */
+        _renderPage(page, i) {
+            // Get the pageinfo structure
+            let pageinfo = this.pages[i];
+    
+            // TODO: Calculate the pixel ratio of the device
+            // let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            let pixel_ratio = 1;
+    
+            // Update the information that we know about the page to the actually loaded page
+            let viewport = page.getViewport({scale: this._zoom.current});
+            pageinfo.width = viewport.width / this._zoom.current;
+            pageinfo.height = viewport.height / this._zoom.current;
+            pageinfo.$div.data("width", pageinfo.width);
+            pageinfo.$div.data("height", pageinfo.height);
+            pageinfo.loaded = true;
+    
+            // Create the canvas and prepare the rendering context
+            let $canvas = $('<canvas></canvas>');
+            let canvas = $canvas.get(0);
+            let context = canvas.getContext('2d');
+            canvas.height = viewport.height * pixel_ratio;
+            canvas.width = viewport.width * pixel_ratio;
+            canvas.getContext("2d").scale(pixel_ratio, pixel_ratio);
+            var renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+    
+            // Render the page and put the resulting rendered canvas into the page $div
+            return page.render(renderContext).promise.then(function() {
+                this._setPageContent(pageinfo.$div, $canvas);
+
+                // Call the callback (if provided)
+                if (typeof this.settings.onPageRender === "function") {
+                    this.settings.onPageRender.call(this, pageinfo.$div, i);
+                }
+                return pageinfo;
+            }.bind(this));
+        }
+    
+        /** Gets the div object corresponding to the active page */
+        getActivePage() {
+            if ((this._activePage === null) || (this.pdf === null)) {
+                return null;
+            }
+            if ((this._activePage < 1) || (this._activePage > this.pdf.numPages)) {
+                return null;
+            }
+            return this.pages[this._activePage].$div;
+        }
+    
+        /** Gets all the pages of the document (the pageinfo structures) */
+        getPages() {
+            return this.pages;
+        }
+    
+        /** Gets the number of pages of the document */
+        getPageCount() {
+            if (this.pdf === null) {
+                return 0;
+            }
+            return this.pdf.numPages;
+        }
+
+        /** Scrolls to the next page (if any) */ 
         next() {
-            this.gotoPage(this.currentPage + 1)
+            if (this._activePage < this.pdf.numPages) {
+                this.scrollToPage(this._activePage + 1);
+            }
         }
-        /**
-         * Go to the previous page
-         */
+    
+        /** Scrolls to the previous page (if any) */
         prev() {
-            this.gotoPage(this.currentPage - 1)
+            if (this._activePage > 1) {
+                this.scrollToPage(this._activePage - 1);
+            }
         }
-        /**
-         * Go to the first page
-         */
+
         first() {
-            this.gotoPage(1)
+            if (this._activePage !== 1) {
+                this.scrollToPage(1);
+            }
         }
-        /**
-         * Go to the last page
-         */
+    
         last() {
-            this.gotoPage(this.pdf.numPages)
-        }
-        /**
-         * Zooms in the whole PDF document
-         */
-        zoomIn() {
-            if (this.zoom === null) {
-                return false;
+            if (this.pdf === null)
+                return;
+            if (this._activePage !== this.pdf.numPages) {
+                this.scrollToPage(this.pdf.numPages);
             }
-            this.zoom.zoom(true);
         }
-        /**
-         * Zooms out the whole PDF document
+        /** 
+         * Loads the document and creates the pages
+         * @param {string} document - the url of the document to load
          */
-         zoomOut() {
-            if (this.zoom === null) {
-                return false;
-            }
-            this.zoom.zoom(false);
-        }
-        /**
-         * Zooms in the whole PDF document to make that the active page fits the container in height
-         */
-         zoomHeight() {
-            if (this.zoom === null) {
-                return false;
-            }
-            this.zoom.apply('height');
-        }
-        /**
-         * Zooms in the whole PDF document to make that the active page fits the container in width
-         */
-         zoomWidth() {
-            if (this.zoom === null) {
-                return false;
-            }
-            this.zoom.apply('width');
-        }
-        /**
-         * Zooms in the whole PDF document to make that the active page fits the container in height and width
-         */
-         zoomFit() {
-            if (this.zoom === null) {
-                return false;
-            }
-            this.zoom.apply('fit');
-        }
-        /**
-         * Obtains the zoom level
-         * @returns {number} the current zoom level
-         */
-        getZoom() {
-            if (this.zoom === null) {
-                return 1;
-            }
-            return this.zoom.current;
+        async loadDocument(document) {
+            // Now prepare a placeholder for the pages
+            this.pages = [];
+    
+            // Remove all the pages
+            this.$container.find(`.${this.settings.pageClass}`).remove();
+    
+            // Let's free the pdf file (if there was one before), and rely on the garbage collector to free the memory
+            this.pdf = null;
+    
+            // Load the task and return the promise to load the document
+            let loadingTask = pdfjsLib.getDocument(document);
+            return loadingTask.promise.then(function(pdf) {
+                // Store the pdf file
+                this.pdf = pdf;
+                this.pageCount = pdf.numPages;
+                this._pagesLoading = [];
+                this._loading = false;
+                this._visibles = [];
+                this._activePage = null;
+    
+                return this.pdf.getPage(1).then(function(page) {
+                    this._createSkeletons(page);
+                    this._visiblePages();
+                    this._setActivePage(1);
+                }.bind(this));
+            }.bind(this));
         }
     }
-
-    // Export the class
     exports.PDFjsViewer = PDFjsViewer;
 })(window, jQuery)
