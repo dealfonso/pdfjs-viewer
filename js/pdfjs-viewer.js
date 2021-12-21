@@ -128,6 +128,8 @@
                 pageClass: "pdfpage",
                 // The class used for the content of each page (the div that contains the page)
                 contentClass: "content-wrapper",
+                // Function called when a document has been loaded and its structure has been created
+                onDocumentReady: () => {},
                 // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
                 onNewPage: (page, i) => {},
                 // Function called when a page is rendered
@@ -330,7 +332,7 @@
     
             // If it is a page, the size will be obtained from the viewport; otherwise, it will be copied from the provided pageinfo
             if (page.getViewport !== undefined) {
-                let viewport = page.getViewport({scale:1});
+                let viewport = page.getViewport({rotation:this._rotation,scale:1});
                 pageinfo.width = viewport.width;
                 pageinfo.height = viewport.height;
                 pageinfo.loaded = true;
@@ -579,14 +581,13 @@
             // Get the pageinfo structure
             let pageinfo = this.pages[i];
     
-            // TODO: Calculate the pixel ratio of the device
-            // let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
-            let pixel_ratio = 1;
+            // Calculate the pixel ratio of the device (we'll use a minimum of 1)
+            let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
     
             // Update the information that we know about the page to the actually loaded page
-            let viewport = page.getViewport({scale: this._zoom.current});
-            pageinfo.width = viewport.width / this._zoom.current;
-            pageinfo.height = viewport.height / this._zoom.current;
+            let viewport = page.getViewport({rotation: this._rotation, scale: this._zoom.current * pixel_ratio});
+            pageinfo.width = (viewport.width / this._zoom.current) / pixel_ratio;
+            pageinfo.height = (viewport.height / this._zoom.current) / pixel_ratio;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
             pageinfo.loaded = true;
@@ -595,9 +596,9 @@
             let $canvas = $('<canvas></canvas>');
             let canvas = $canvas.get(0);
             let context = canvas.getContext('2d');
-            canvas.height = viewport.height * pixel_ratio;
-            canvas.width = viewport.width * pixel_ratio;
-            canvas.getContext("2d").scale(pixel_ratio, pixel_ratio);
+            canvas.height = viewport.height; // * pixel_ratio;
+            canvas.width = viewport.width; //  * pixel_ratio;
+            canvas.getContext("2d"); //.scale(pixel_ratio, pixel_ratio);
             var renderContext = {
                 canvasContext: context,
                 viewport: viewport
@@ -666,6 +667,59 @@
                 this.scrollToPage(this.pdf.numPages);
             }
         }
+        /**
+         * Rotates the pages of the document
+         * @param {*} deg - degrees to rotate the pages
+         * @param {*} accumulate - whether the rotation is accumulated or not
+         */
+        rotate(deg, accumulate = false) {
+            if (accumulate) {
+                deg = deg + this._rotation;
+            }
+            this._rotation = deg;
+
+            let container = this.$container.get(0);
+            let prevScroll = {
+                top: container.scrollTop,
+                left: container.scrollLeft,
+                height: container.scrollHeight,
+                width: container.scrollWidth
+            };
+
+            return this.forceViewerInitialization().then(function() {
+                let newScroll = {
+                    top: container.scrollTop,
+                    left: container.scrollLeft,
+                    height: container.scrollHeight,
+                    width: container.scrollWidth
+                };
+                container.scrollTop = prevScroll.top * (newScroll.height / prevScroll.height);
+                container.scrollLeft = prevScroll.left * (newScroll.width / prevScroll.width);
+            }.bind(this));
+        }
+        /**
+         * This functions forces the creation of the whole content of the viewer (i.e. new divs, structures, etc.). It is usefull for full refresh of the viewer (e.g. when changes
+         *   the rotation of the pages)
+         * @returns a promise that is resolved when the viewer is fully initialized
+         */
+        forceViewerInitialization() {
+            // Store the pdf file
+            // Now prepare a placeholder for the pages
+            this.pages = [];
+    
+            // Remove all the pages
+            this.$container.find(`.${this.settings.pageClass}`).remove();
+
+            this._pagesLoading = [];
+            this._loading = false;
+            this._visibles = [];
+            this._activePage = null;
+            return this.pdf.getPage(1).then(function(page) {
+                this._createSkeletons(page);
+                this._visiblePages();
+                this._setActivePage(1);
+            }.bind(this));
+        }
         /** 
          * Loads the document and creates the pages
          * @param {string} document - the url of the document to load
@@ -683,19 +737,28 @@
             // Load the task and return the promise to load the document
             let loadingTask = pdfjsLib.getDocument(document);
             return loadingTask.promise.then(function(pdf) {
-                // Store the pdf file
+                // Store the pdf file and get the 
                 this.pdf = pdf;
                 this.pageCount = pdf.numPages;
+                this._rotation = 0;
+                return this.forceViewerInitialization();
+                /*
                 this._pagesLoading = [];
                 this._loading = false;
                 this._visibles = [];
                 this._activePage = null;
+                this._rotation = 0;
     
                 return this.pdf.getPage(1).then(function(page) {
                     this._createSkeletons(page);
                     this._visiblePages();
                     this._setActivePage(1);
                 }.bind(this));
+                */
+            }.bind(this)).then(function() {
+                if (typeof this.settings.onDocumentReady === "function") {
+                    this.settings.onDocumentReady.call(this);
+                }
             }.bind(this));
         }
     }
