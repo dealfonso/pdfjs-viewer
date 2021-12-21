@@ -482,17 +482,19 @@
     
             // Now get the visible pages
             let visibles = $visibles.map((x) => $(x).data('page'));
-    
-            // Now will add some extra pages (before and after) the visible ones, to have them prepared in case of scroll
-            let minVisible = Math.min(...visibles);
-            let maxVisible = Math.max(...visibles);
-            for (let i = Math.max(1, minVisible - this.settings.extraPagesToLoad) ; i < minVisible ; i++) {
-                if (!visibles.includes(i)) 
-                    visibles.push(i)
-            }
-            for (let i = maxVisible + 1; i <= Math.min(maxVisible + this.settings.extraPagesToLoad, this.pdf.numPages); i++) {
-                if (!visibles.includes(i)) 
-                    visibles.push(i)
+            if (visibles.length > 0) {
+                // Now will add some extra pages (before and after) the visible ones, to have them prepared in case of scroll
+                let minVisible = Math.min(...visibles);
+                let maxVisible = Math.max(...visibles);
+
+                for (let i = Math.max(1, minVisible - this.settings.extraPagesToLoad) ; i < minVisible ; i++) {
+                    if (!visibles.includes(i)) 
+                        visibles.push(i)
+                }
+                for (let i = maxVisible + 1; i <= Math.min(maxVisible + this.settings.extraPagesToLoad, this.pdf.numPages); i++) {
+                    if (!visibles.includes(i)) 
+                        visibles.push(i)
+                }
             }
     
             // Now will draw the visible pages, but if not forcing, will only draw those that were not visible before
@@ -717,6 +719,7 @@
             return this.pdf.getPage(1).then(function(page) {
                 this._createSkeletons(page);
                 this._visiblePages();
+                return;
                 this._setActivePage(1);
             }.bind(this));
         }
@@ -733,7 +736,7 @@
     
             // Let's free the pdf file (if there was one before), and rely on the garbage collector to free the memory
             this.pdf = null;
-    
+
             // Load the task and return the promise to load the document
             let loadingTask = pdfjsLib.getDocument(document);
             return loadingTask.promise.then(function(pdf) {

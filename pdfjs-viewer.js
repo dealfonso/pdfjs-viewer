@@ -288,13 +288,15 @@
             }.bind(this)).map(x => x.$div);
             this._setActivePage(i_page);
             let visibles = $visibles.map(x => $(x).data("page"));
-            let minVisible = Math.min(...visibles);
-            let maxVisible = Math.max(...visibles);
-            for (let i = Math.max(1, minVisible - this.settings.extraPagesToLoad); i < minVisible; i++) {
-                if (!visibles.includes(i)) visibles.push(i);
-            }
-            for (let i = maxVisible + 1; i <= Math.min(maxVisible + this.settings.extraPagesToLoad, this.pdf.numPages); i++) {
-                if (!visibles.includes(i)) visibles.push(i);
+            if (visibles.length > 0) {
+                let minVisible = Math.min(...visibles);
+                let maxVisible = Math.max(...visibles);
+                for (let i = Math.max(1, minVisible - this.settings.extraPagesToLoad); i < minVisible; i++) {
+                    if (!visibles.includes(i)) visibles.push(i);
+                }
+                for (let i = maxVisible + 1; i <= Math.min(maxVisible + this.settings.extraPagesToLoad, this.pdf.numPages); i++) {
+                    if (!visibles.includes(i)) visibles.push(i);
+                }
             }
             let nowVisibles = visibles;
             if (!forceRedraw) {
@@ -449,6 +451,7 @@
             return this.pdf.getPage(1).then(function(page) {
                 this._createSkeletons(page);
                 this._visiblePages();
+                return;
                 this._setActivePage(1);
             }.bind(this));
         }
