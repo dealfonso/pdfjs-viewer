@@ -35,6 +35,7 @@
             top: 0;
             left: 0;
             border: 1px solid #aaa;
+            border-right: 3px solid #999;
             background: #ccc;
             text-align: center;
         }
@@ -42,38 +43,28 @@
             border: 2px solid #777;
             border-radius: 2px;
         }
-        .hider {
-            position: absolute;
-            height: 100%;
-            width: 10px;
-            background: #ddd;
-            display: flex;
+        .hide {
+            display: none;
         }
-        .hider a, .hider a i {
-            margin: auto 0;
-            font-size: 10px;
-            color: #333;
-        }
-        .hider.folded-left .fold {
-            display: none !important;
-        }
-        .hider:not(.folded-left) .unfold {
-            display: none !important;
+        input[type="file"] {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="col-12 pdfviewer">
         <div class="pdftoolbar">
-            <button class="" onclick="pdfViewer.prev();"><i class="material-icons-outlined">arrow_upward</i></button>
+            <button class="pushed" onclick="togglethumbs(this);"><i class="material-icons-outlined">view_sidebar</i></button>
             <div class="v-sep"></div>
-            <button class="" onclick="pdfViewer.next();"><i class="material-icons-outlined">arrow_downward</i></button>
+            <button onclick="pdfViewer.prev();"><i class="material-icons-outlined">arrow_upward</i></button>
+            <div class="v-sep"></div>
+            <button onclick="pdfViewer.next();"><i class="material-icons-outlined">arrow_downward</i></button>
             <input id="pageno" class="pageno" type="number" class="form-control form-control-sm d-inline w-auto" value="1" min="1" max="1000" onchange="pdfViewer.scrollToPage(parseInt(this.value))">
             <span id="pagecount" class="pageno"></span>
             <div class="divider"></div>
-            <button class="btn btn-secondary btn-sm" onclick="setZoom('in')"><i class="material-icons-outlined">add</i></button>
+            <button onclick="setZoom('in')"><i class="material-icons-outlined">add</i></button>
             <div class="v-sep"></div>
-            <button class="btn btn-secondary btn-sm" onclick="setZoom('out')"><i class="material-icons-outlined">remove</i></button>
+            <button onclick="setZoom('out')"><i class="material-icons-outlined">remove</i></button>
             <div class="dropdown">
                 <div class="dropdown-value" onclick="this.parentNode.classList.toggle('show');">
                     <span class="zoomval">100%</span>
@@ -96,7 +87,9 @@
                 </div>                    
             </div>
             <div class="divider"></div>
-            <button class="btn btn-secondary btn-sm btn-first" onclick="window.open(PDFFILE, '_blank')"><i class="material-icons-outlined">file_download</i></button>
+            <label class="button" for="opendoc"><i class="material-icons-outlined">file_open</i></label>
+            <input id="opendoc" type="file" accept="application/pdf">
+            <a id="filedownload" class="btn btn-secondary btn-sm"><i class="material-icons-outlined">file_download</i></a>
             <div class="dropdown dropdown-right">
                 <div onclick="this.parentNode.classList.toggle('show');">
                     <button><i class="material-icons-outlined">keyboard_double_arrow_right</i></button>
@@ -105,20 +98,15 @@
                     <a href="#" onclick='pdfViewer.scrollToPage(1); return false;'><i class="material-icons-outlined">vertical_align_top</i>First page</a>
                     <a href="#" onclick='pdfViewer.scrollToPage(pdfViewer.pdf.numPages); return false;'><i class="material-icons-outlined">vertical_align_bottom</i>Last page</a>
                     <div class="h-sep"></div>
+                    <a href="#" onclick='pdfViewer.rotate(-90, true); pdfThumbnails.rotate(-90, true).then(() => pdfThumbnails.setZoom("fit"));'><i class="material-icons-outlined">rotate_90_degrees_ccw</i>Rotate countrary clockwise</a>
+                    <a href="#" onclick='pdfViewer.rotate(90, true); pdfThumbnails.rotate(90, true).then(() => pdfThumbnails.setZoom("fit"));'><i class="material-icons-outlined">rotate_90_degrees_cw</i>Rotate clockwise</a>
+                    <div class="h-sep"></div>
                     <a href="#" onclick='document.querySelector(".pdfpages").classList.remove("horizontal-scroll"); pdfViewer.refreshAll();'><i class="material-icons-outlined">more_vert</i>Vertical scroll</a>
                     <a href="#" onclick='setHorizontal()'><i class="material-icons-outlined">more_horiz</i>Horizontal scroll</a>
                 </div>                    
             </div>                
         </div>
         <div class="thumbnails">
-        </div>
-        <div class="hider">
-            <a class="my-auto fold" href="#" onclick="hidethumbs(); return false;">
-                <i class="material-icons-outlined">keyboard_double_arrow_left</i>
-            </a>
-            <a class="my-auto unfold" href="#" onclick="showthumbs(); return false;">
-                <i class="material-icons-outlined">keyboard_double_arrow_right</i>
-            </a>
         </div>
         <div class="pdfpages">
             <div class="pdfpage placeholder">
@@ -129,39 +117,65 @@
 </body>
 <script>
 let PDFFILE="test.pdf";
+function dataURItoBinArray(data) {
+    // taken from: https://stackoverflow.com/a/11954337/14699733
+    var binary = atob(data);
+    var array = [];
+    for(var i = 0; i < binary.length; i++) {
+        array.push(binary.charCodeAt(i));
+    }
+    return new Uint8Array(array);
+}
+/** Function to load a PDF file using the input=file API */
+document.querySelector("#opendoc").addEventListener("change", function(e) {
+    let file = e.target;
+    let reader = new FileReader();
+    reader.onload = async function() {
+        await pdfViewer.loadDocument({data: dataURItoBinArray(reader.result.replace(/^data:.*;base64,/,""))});
+        await pdfThumbnails.loadDocument({data: dataURItoBinArray(reader.result.replace(/^data:.*;base64,/,""))}).then(() => pdfThumbnails.setZoom("fit"));
+    }
+    if (file.files.length > 0) {
+        reader.readAsDataURL(file.files[0]);
+        document.querySelector('#filedownload').download = document.querySelector('#opendoc').files[0].name;
+    }
+});
+/** Sets the document in horizontal scroll by changing the class for the pages container and refreshing the document 
+ *    so that the pages may be displayed in horizontal scroll if they were not visible before */
 function setHorizontal() {
     document.querySelector(".pdfpages").classList.add("horizontal-scroll"); 
     pdfViewer.refreshAll();    
 }
+/** Sets the zoom for the document */
 function setZoom(el) {
     if (typeof el === "object")
         pdfViewer.setZoom($(el).data('zoom'));
     else
         pdfViewer.setZoom(el);
 }
-function hidethumbs() {
-    $('.thumbnails').hide();
+/** Toggles the visibility of the thumbnails */
+function togglethumbs(el) {
+    if (el.classList.contains('pushed')) {
+        el.classList.remove('pushed');
+        document.querySelector('.thumbnails').classList.add('hide');
+    } else {
+        el.classList.add('pushed');
+        document.querySelector('.thumbnails').classList.remove('hide');
+    }
     pdfViewer.adjustPlacement();
     pdfThumbnails.adjustPlacement();
-
-    $('.hider').addClass('folded-left');
-}
-function showthumbs() {
-    $('.thumbnails').show();
-    pdfViewer.adjustPlacement();
-    pdfThumbnails.adjustPlacement();
-    $('.hider').removeClass('folded-left');
 }
 
+/** Now create the PDFjsViewer object in the DIV */
 let pdfViewer = new PDFjsViewer($('.pdfpages'), {
     zoomValues: [ 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4 ],
+
+    /** Calculate the position, taking into account the position of the thumbnail and the toolbar */
     calculatePlacement: function() {
         let $thumbnails = $('.thumbnails');
         let thwidth = $thumbnails.outerWidth();
         if (!$thumbnails.is(':visible')) {
             thwidth = 0;
         }
-        thwidth += $('.hider').outerWidth();
         let $toolbar = $(".pdftoolbar");
         let tbheight = $toolbar.outerHeight() || 0;
         let $viewerContainer = this.$container.parent();
@@ -172,16 +186,30 @@ let pdfViewer = new PDFjsViewer($('.pdfpages'), {
         offset.height = $viewerContainer.height() - tbheight;
         return offset;
     },
+
+    /** Update the zoom value in the toolbar */
     onZoomChange: function(zoom) {
         zoom = parseInt(zoom * 10000) / 100;
         $('.zoomval').text(zoom + '%');
     },
+
+    /** Update the active page */
     onActivePageChanged: function(page) {
         let pageno = $(page).data('page');
         updateactivepage(pageno, this.getPageCount());
     },
+
+    /** zoom to fit when the document is loaded and create the object if wanted to be downloaded */
+    onDocumentReady: function () {
+        pdfViewer.setZoom('fit');
+        pdfViewer.pdf.getData().then(function(data) {
+            document.querySelector('#filedownload').href = URL.createObjectURL(new Blob([data], {type: 'application/pdf'}));
+            document.querySelector('#filedownload').target = '_blank';
+        });
+    }
 });
 
+/** Change the active page in the toolbar and update the thumbnail */
 function updateactivepage(pageno, pagetotal) {
     pdfThumbnails.setActivePage(pageno);
     $('#pageno').val(pageno);
@@ -189,23 +217,20 @@ function updateactivepage(pageno, pagetotal) {
     $('#pagecount').text('de ' + pagetotal);
 }
 
+/** Load the initial PDF file */
 pdfViewer.loadDocument(PDFFILE).then(function() {
-    pdfViewer.setZoom("fit");
+    document.querySelector('#filedownload').download = PDFFILE;
 });
 
+/** Create the thumbnails */
 let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
     zoomFillArea: 0.7,
     calculatePlacement: function() {
         let offset = $('.pdfviewer').offset();
         let tbheight = $('.pdftoolbar').outerHeight() || 0;
-        if (!this.$container.is(':visible')) {
-            $('.hider').offset({left: offset.left }).height($('.pdfviewer').height() - tbheight);
-            return null;
-        }
         offset.top += tbheight;
-        offset.width = this.$container.outerWidth();
+        offset.width = this.$container.width();
         offset.height = $('.pdfviewer').height() - tbheight;
-        $('.hider').offset({left: offset.left + offset.width }).height($('.pdfviewer').height() - tbheight);
         return offset;
     },
     onNewPage: function(page) {

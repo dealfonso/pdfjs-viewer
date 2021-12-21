@@ -17,7 +17,7 @@
     width: 4em !important;
     font-size: 12px;
 }
-.pdftoolbar button {
+.pdftoolbar button, .pdftoolbar label.button {
     min-width: 26px;
     height: 28px;
     border: none;
@@ -28,13 +28,19 @@
     font-size: 14px;
     background-color: #ddd;
 }
-.pdftoolbar button i {
+.pdftoolbar button i, .pdftoolbar label.button i {
     font-size: 26px;
     padding: 0;
     margin: 0;
 }
-.pdftoolbar button:hover {
+.pdftoolbar button:hover, .pdftoolbar label.button:hover {
     background-color: #ccc;
+}
+button.pushed {
+    background-color: #aaa !important;
+}
+.pdftoolbar a {
+    color: inherit;
 }
 .pdftoolbar .divider {
     flex: 1;
