@@ -90,6 +90,7 @@
                 extraPagesToLoad: 3,
                 pageClass: "pdfpage",
                 contentClass: "content-wrapper",
+                onDocumentReady: () => {},
                 onNewPage: (page, i) => {},
                 onPageRender: (page, i) => {},
                 errorPage: () => {
@@ -202,6 +203,7 @@
             };
             if (page.getViewport !== undefined) {
                 let viewport = page.getViewport({
+                    rotation: this._rotation,
                     scale: 1
                 });
                 pageinfo.width = viewport.width;
@@ -347,21 +349,22 @@
         }
         _renderPage(page, i) {
             let pageinfo = this.pages[i];
-            let pixel_ratio = 1;
+            let pixel_ratio = Math.max(window.devicePixelRatio || 1, 1);
             let viewport = page.getViewport({
-                scale: this._zoom.current
+                rotation: this._rotation,
+                scale: this._zoom.current * pixel_ratio
             });
-            pageinfo.width = viewport.width / this._zoom.current;
-            pageinfo.height = viewport.height / this._zoom.current;
+            pageinfo.width = viewport.width / this._zoom.current / pixel_ratio;
+            pageinfo.height = viewport.height / this._zoom.current / pixel_ratio;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
             pageinfo.loaded = true;
             let $canvas = $("<canvas></canvas>");
             let canvas = $canvas.get(0);
             let context = canvas.getContext("2d");
-            canvas.height = viewport.height * pixel_ratio;
-            canvas.width = viewport.width * pixel_ratio;
-            canvas.getContext("2d").scale(pixel_ratio, pixel_ratio);
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.getContext("2d");
             var renderContext = {
                 canvasContext: context,
                 viewport: viewport
@@ -413,6 +416,42 @@
                 this.scrollToPage(this.pdf.numPages);
             }
         }
+        rotate(deg, accumulate = false) {
+            if (accumulate) {
+                deg = deg + this._rotation;
+            }
+            this._rotation = deg;
+            let container = this.$container.get(0);
+            let prevScroll = {
+                top: container.scrollTop,
+                left: container.scrollLeft,
+                height: container.scrollHeight,
+                width: container.scrollWidth
+            };
+            return this.forceViewerInitialization().then(function() {
+                let newScroll = {
+                    top: container.scrollTop,
+                    left: container.scrollLeft,
+                    height: container.scrollHeight,
+                    width: container.scrollWidth
+                };
+                container.scrollTop = prevScroll.top * (newScroll.height / prevScroll.height);
+                container.scrollLeft = prevScroll.left * (newScroll.width / prevScroll.width);
+            }.bind(this));
+        }
+        forceViewerInitialization() {
+            this.pages = [];
+            this.$container.find(`.${this.settings.pageClass}`).remove();
+            this._pagesLoading = [];
+            this._loading = false;
+            this._visibles = [];
+            this._activePage = null;
+            return this.pdf.getPage(1).then(function(page) {
+                this._createSkeletons(page);
+                this._visiblePages();
+                this._setActivePage(1);
+            }.bind(this));
+        }
         async loadDocument(document) {
             this.pages = [];
             this.$container.find(`.${this.settings.pageClass}`).remove();
@@ -421,15 +460,12 @@
             return loadingTask.promise.then(function(pdf) {
                 this.pdf = pdf;
                 this.pageCount = pdf.numPages;
-                this._pagesLoading = [];
-                this._loading = false;
-                this._visibles = [];
-                this._activePage = null;
-                return this.pdf.getPage(1).then(function(page) {
-                    this._createSkeletons(page);
-                    this._visiblePages();
-                    this._setActivePage(1);
-                }.bind(this));
+                this._rotation = 0;
+                return this.forceViewerInitialization();
+            }.bind(this)).then(function() {
+                if (typeof this.settings.onDocumentReady === "function") {
+                    this.settings.onDocumentReady.call(this);
+                }
             }.bind(this));
         }
     }
