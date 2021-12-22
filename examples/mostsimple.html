@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>Simple PDFjs-viewer</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+        <script src="../js/pdfjs-viewer.js"></script>
+        <link rel="stylesheet" href="../css/pdfjs-viewer.css">
+        <script>
+        var pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+        </script>
+    </head>
+    <body class="pdfjs-viewer">
+    </body>
+    <script>
+        var pdfViewer = new PDFjsViewer($('body'));
+        pdfViewer.loadDocument('test.pdf');
+    </script>
+</html>

@@ -11,8 +11,6 @@
     <script>
     // Let's initialize the PDFjs library
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
-
-    // The workerSrc property shall be specified.
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
     </script>
     <style>
@@ -22,29 +20,18 @@
     </style>
 </head>
 <body>
-    <div class="row h-100">
+    <div class="row h-100 mx-0">
         <div class="col-12 text-center">
             <h1>Example for PDFjs-viewer</h1>
-            <p>This is a simple document embeded in a div</p>
+            <p>This is a simple document embeded in a div, integrated with bootstrap</p>
         </div>
-        <div class="row w-100 h-50 my-auto">
-            <div class="col-6 offset-md-3 pdfviewer p-0">
-                <div class="pdfpages">
-                    <div class="pdfpage placeholder">
-                        <p class="my-auto mx-auto">No file loaded</p>
-                    </div>
-                </div>    
-            </div>
-        </div>
-        <div class="col-12">
+        <div class="pdfjs-viewer col-8 offset-md-2 h-50">
         </div>
     </div>
 </body>
 <script>
-    let PDFFILE="test.pdf";
-
-    let pdfViewer = new PDFjsViewer($('.pdfpages'));
-    pdfViewer.loadDocument(PDFFILE).then(function() {
+    let pdfViewer = new PDFjsViewer($('.pdfjs-viewer'));
+    pdfViewer.loadDocument("test.pdf").then(function() {
         pdfViewer.setZoom("fit");
     });
 </script>
