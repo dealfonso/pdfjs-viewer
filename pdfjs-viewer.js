@@ -15,6 +15,7 @@
 */
 
 (function(exports, $) {
+    "use strict";
     class Zoomer {
         constructor(viewer, options = {}) {
             let defaults = {
@@ -98,13 +99,6 @@
                 },
                 zoomValues: [ .25, .5, .75, 1, 1.25, 1.5, 2, 4, 8 ],
                 onZoomChange: zoomlevel => {},
-                calculatePlacement: () => {
-                    let $viewerContainer = this.$container.parent();
-                    let offset = $viewerContainer.offset();
-                    offset.width = $viewerContainer.width();
-                    offset.height = $viewerContainer.height();
-                    return offset;
-                },
                 onActivePageChanged: (page, i) => {},
                 zoomFillArea: .95,
                 emptyContent: () => $('<div class="loader"></div>')
@@ -116,8 +110,9 @@
             });
             this.$container = $container;
             $container.get(0)._pdfjsViewer = this;
-            this.__setScrollListener();
-            this.__setResizeListener();
+            this._setScrollListener();
+            this.pages = [];
+            this.pdf = null;
         }
         setZoom(zoom) {
             let container = this.$container.get(0);
@@ -145,7 +140,7 @@
         refreshAll() {
             this._visiblePages(true);
         }
-        __setScrollListener() {
+        _setScrollListener() {
             let scrollLock = false;
             let scrollPos = {
                 top: 0,
@@ -157,7 +152,7 @@
                 }
                 scrollLock = true;
                 let container = this.$container.get(0);
-                if (Math.abs(container.scrollTop - scrollPos.top) > this._height * .2 * this._zoom.current || Math.abs(container.scrollLeft - scrollPos.left) > this._width * .2 * this._zoom.current) {
+                if (Math.abs(container.scrollTop - scrollPos.top) > container.clientHeight * .2 * this._zoom.current || Math.abs(container.scrollLeft - scrollPos.left) > container.clientWidth * .2 * this._zoom.current) {
                     scrollPos = {
                         top: container.scrollTop,
                         left: container.scrollLeft
@@ -168,31 +163,6 @@
             }.bind(this);
             this.$container.off("scroll");
             this.$container.on("scroll", this.__scrollHandler);
-        }
-        __setResizeListener() {
-            this.__resizeListener = function() {
-                if (typeof this.settings.calculatePlacement === "function") {
-                    let offset = this.settings.calculatePlacement.call(this);
-                    if (offset !== null) {
-                        this.$container.css({
-                            top: offset.top,
-                            left: offset.left,
-                            width: offset.width,
-                            height: offset.height
-                        });
-                    }
-                }
-            }.bind(this);
-            window.addEventListener("resize", this.__resizeListener);
-            let self = this;
-            $(function() {
-                self.adjustPlacement();
-            });
-        }
-        adjustPlacement() {
-            this.__resizeListener();
-            this._width = this.$container.width();
-            this._height = this.$container.height();
         }
         _createSkeleton(page, i) {
             let pageinfo = {
@@ -251,9 +221,15 @@
             }
         }
         _areaOfPageVisible($page) {
+            if ($page === undefined) {
+                return 0;
+            }
+            let c_offset = this.$container.offset();
             let c_width = this.$container.width();
             let c_height = this.$container.height();
-            let position = $page.position();
+            let position = $page.offset();
+            position.top -= c_offset.top;
+            position.left -= c_offset.left;
             position.bottom = position.top + $page.outerHeight();
             position.right = position.left + $page.outerWidth();
             let page_y0 = Math.min(Math.max(position.top, 0), c_height);
@@ -265,6 +241,9 @@
             return vis_x * vis_y;
         }
         isPageVisible(i) {
+            if (this.pdf === null || i === undefined || i === null || i < 1 || i > this.pdf.numPages) {
+                return false;
+            }
             let $page = i;
             if (typeof i === "number") {
                 if (this.pages[i] === undefined) return false;
@@ -273,11 +252,13 @@
             return this._areaOfPageVisible($page) > $page.outerWidth() * $page.outerHeight() * this.settings.visibleThreshold;
         }
         _visiblePages(forceRedraw = false) {
-            let coffset = this.$container.offset();
-            coffset.width = this.$container.width();
-            coffset.height = this.$container.height();
             let max_area = 0;
             let i_page = null;
+            if (this.pages.length === 0) {
+                this._visibles = [];
+                this._setActivePage(0);
+                return;
+            }
             let $visibles = this.pages.filter(function(pageinfo) {
                 let areaVisible = this._areaOfPageVisible(pageinfo.$div);
                 if (areaVisible > max_area) {
@@ -334,7 +315,7 @@
             this._loading = false;
         }
         scrollToPage(i) {
-            if (this.pages[i] === undefined) {
+            if (this.pages.length === 0 || this.pages[i] === undefined) {
                 return;
             }
             let $page = this.pages[i].$div;
@@ -451,7 +432,6 @@
             return this.pdf.getPage(1).then(function(page) {
                 this._createSkeletons(page);
                 this._visiblePages();
-                return;
                 this._setActivePage(1);
             }.bind(this));
         }

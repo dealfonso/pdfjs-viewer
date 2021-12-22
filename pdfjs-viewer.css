@@ -14,30 +14,24 @@
    limitations under the License.
 */
 
-.pdfpages {
-  position: absolute;
+.pdfjs-viewer {
   overflow: auto;
-  top: 0;
-  left: 0;
-  right: 0;
   border: 1px solid #aaa;
-  background: #ccc;
-  text-align: center
+  background: #ccc
 }
-.pdfpages.horizontal-scroll {
+.pdfjs-viewer.horizontal-scroll {
   display: flex
 }
-.pdfpages.horizontal-scroll .pdfpage {
+.pdfjs-viewer.horizontal-scroll .pdfpage {
   margin-left: 1em;
   margin-top: .25em!important;
   margin-bottom: .25em!important;
   display: block
 }
 .pdfpage {
-  height: 100px;
+  position: relative;
   margin-bottom: 1em;
   margin-top: 1em;
-  position: relative;
   margin-left: auto;
   margin-right: auto;
   box-shadow: 0 4px 8px 0 rgba(0,0,0,.1),0 6px 20px 0 rgba(0,0,0,.09);
