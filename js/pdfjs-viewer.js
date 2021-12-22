@@ -14,10 +14,10 @@
    limitations under the License.
 */
 (function(exports, $) {
-
+    'use strict';
+    
     // Class used to help in zoom management; probably it can be moved to the main class, but it is used to group methods
     class Zoomer {
-
         /**
          * Construct the helper class
          * @param {PDFjsViewer} viewer - the viewer object
@@ -142,16 +142,6 @@
                 zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
                 // Function called when the zoom level changes (it receives the zoom level)
                 onZoomChange: (zoomlevel) => {},
-                // Function used to calculate the placement of the container of the pdf pages. Called by the function "adjustPlacement". 
-                //   It returns an object { top: <value>, left: <value>, width: <value>, height: <value>, height: <value> }
-                // * The default function spans the container in the whole size of the parent object
-                calculatePlacement: () => {
-                    let $viewerContainer = this.$container.parent();
-                    let offset = $viewerContainer.offset();
-                    offset.width = $viewerContainer.width();
-                    offset.height = $viewerContainer.height();
-                    return offset;
-                },
                 // Function called whenever the active page is changed (the active page is the one that is shown in the viewer)
                 onActivePageChanged: (page, i) => {},
                 // Percentage of the container that will be filled with the page
@@ -175,8 +165,11 @@
             $container.get(0)._pdfjsViewer = this;
     
             // Add the event listeners
-            this.__setScrollListener();
-            this.__setResizeListener();
+            this._setScrollListener();
+
+            // Initialize some variables
+            this.pages = [];
+            this.pdf = null;
         }    
     
         /**
@@ -243,7 +236,7 @@
         }
     
         /** Function that creates a scroll handler to update the active page and to load more pages as the scroll position changes */
-        __setScrollListener() {
+        _setScrollListener() {
             // Create a scroll handler that prevents reentrance if called multiple times and the loading of pages is not finished
             let scrollLock = false;
             let scrollPos = { top:0 , left:0 };
@@ -256,9 +249,8 @@
                 scrollLock = true;
     
                 let container = this.$container.get(0);
-                
-                if ((Math.abs(container.scrollTop - scrollPos.top) > (this._height * 0.2 * this._zoom.current)) ||
-                    (Math.abs(container.scrollLeft - scrollPos.left) > (this._width * 0.2 * this._zoom.current))) {
+                if ((Math.abs(container.scrollTop - scrollPos.top) > (container.clientHeight * 0.2 * this._zoom.current)) ||
+                    (Math.abs(container.scrollLeft - scrollPos.left) > (container.clientWidth * 0.2 * this._zoom.current))) {
                     scrollPos = {
                         top: container.scrollTop,
                         left: container.scrollLeft
@@ -273,44 +265,6 @@
             this.$container.off('scroll');
             this.$container.on('scroll', this.__scrollHandler);            
         }    
-        /** 
-         * Function that creates a handler for the onResize event in the window, so that the viewer can be resized
-         *   if the parent container is resized. The handler relies on the function "calculatePlacement" to calculate 
-         *   the new size and position of the viewer.
-         */
-        __setResizeListener() {
-            this.__resizeListener = function() {
-                if (typeof this.settings.calculatePlacement === 'function') {
-                    let offset = this.settings.calculatePlacement.call(this);
-                    if (offset !== null) {
-                        this.$container.css({
-                            top: offset.top,
-                            left: offset.left,
-                            width: offset.width,
-                            height: offset.height
-                        });
-                    }
-                }
-            }.bind(this);
-    
-            // Now set the handler and force the call to adjust initial placement, when the document is available
-            window.addEventListener('resize', this.__resizeListener);
-            let self = this;
-            $(function() {
-                self.adjustPlacement();
-            });
-        }
-        /**
-         * This function adjusts the placement of the viewer, according to the calculatePlacement function provided by the user
-         *   * the default function makes the viewer to cover all the parent's area
-         */
-        adjustPlacement() {
-            // Force the execution of the handler to resize the viewer and store the width and height
-            this.__resizeListener();
-            this._width = this.$container.width();
-            this._height = this.$container.height();
-        }
-
         /**
          * Function that creates the pageinfo structure for one page, along with the skeleton to host the page (i.e. <div class="page"><div class="content-wrapper"></div></div>)
          *   If the page is a pageinfo, the new pageinfo structure will not rely on the size (it will copy it, but it won't be marked as loaded). If it is a page, the size will
@@ -423,9 +377,15 @@
          * @returns the visible area
          */
         _areaOfPageVisible($page) {
+            if ($page === undefined) {
+                return 0;
+            }
+            let c_offset = this.$container.offset();
             let c_width = this.$container.width();
             let c_height = this.$container.height();
-            let position = $page.position();
+            let position = $page.offset();
+            position.top -= c_offset.top;
+            position.left -= c_offset.left;
             position.bottom = position.top + $page.outerHeight();
             position.right = position.left + $page.outerWidth();
             let page_y0 = Math.min(Math.max(position.top, 0), c_height);
@@ -443,6 +403,9 @@
          * @returns true if the page is visible
          */
         isPageVisible(i) {
+            if ((this.pdf === null) || (i === undefined) || (i === null) || (i < 1) || (i > this.pdf.numPages)) {
+                return false;
+            }
             let $page = i;
             if (typeof i === "number") {
                 if (this.pages[i] === undefined)
@@ -456,17 +419,18 @@
          * Function that calculates which pages are visible in the viewer, draws them (if not already drawn), and clears those not visible
          * @param {*} forceRedraw - if true, the visible pages will be redrawn regardless of whether they are already drawn (useful for zoom changes)
          */
-        _visiblePages(forceRedraw = false) {
-
-            // Get the offset for the container
-            let coffset = this.$container.offset();
-            coffset.width = this.$container.width();
-            coffset.height = this.$container.height();
-    
+        _visiblePages(forceRedraw = false) {    
             // Will grab the page with the greater visible area to set it as active
             let max_area = 0;
             let i_page = null;
     
+            // If there are no visible pages, return
+            if (this.pages.length === 0) {
+                this._visibles = [];
+                this._setActivePage(0);
+                return;
+            }
+
             // Calculate the visible area for each page and consider it visible if the visible area is greater than 0
             let $visibles = this.pages.filter(function(pageinfo) {
                 let areaVisible = this._areaOfPageVisible(pageinfo.$div);
@@ -557,7 +521,7 @@
          * @param {*} i - the number of the page to set the scroll position
          */
         scrollToPage(i) {
-            if (this.pages[i] === undefined) {
+            if ((this.pages.length === 0) || (this.pages[i] === undefined)) {
                 return;
             }
             let $page = this.pages[i].$div;
@@ -719,7 +683,6 @@
             return this.pdf.getPage(1).then(function(page) {
                 this._createSkeletons(page);
                 this._visiblePages();
-                return;
                 this._setActivePage(1);
             }.bind(this));
         }
@@ -745,19 +708,6 @@
                 this.pageCount = pdf.numPages;
                 this._rotation = 0;
                 return this.forceViewerInitialization();
-                /*
-                this._pagesLoading = [];
-                this._loading = false;
-                this._visibles = [];
-                this._activePage = null;
-                this._rotation = 0;
-    
-                return this.pdf.getPage(1).then(function(page) {
-                    this._createSkeletons(page);
-                    this._visiblePages();
-                    this._setActivePage(1);
-                }.bind(this));
-                */
             }.bind(this)).then(function() {
                 if (typeof this.settings.onDocumentReady === "function") {
                     this.settings.onDocumentReady.call(this);
