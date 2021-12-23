@@ -92,6 +92,7 @@
   width: 4em!important;
   font-size: 12px
 }
+.pdftoolbar a.button,
 .pdftoolbar button,
 .pdftoolbar label.button {
   min-width: 26px;
@@ -102,7 +103,8 @@
   border-radius: 2px;
   line-height: 12px;
   font-size: 14px;
-  background-color: #ddd
+  background-color: #ddd;
+  cursor: pointer
 }
 .pdftoolbar button i,
 .pdftoolbar label.button i {
@@ -110,6 +112,7 @@
   padding: 0;
   margin: 0
 }
+.pdftoolbar a.button:hover,
 .pdftoolbar button:hover,
 .pdftoolbar label.button:hover {
   background-color: #ccc
@@ -117,7 +120,7 @@
 button.pushed {
   background-color: #aaa!important
 }
-.pdftoolbar a {
+.pdftoolbar a.button {
   color: inherit
 }
 .pdftoolbar .divider {
@@ -161,6 +164,8 @@ button.pushed {
   box-shadow: 0 4px 8px 0 rgba(0,0,0,.1),0 6px 20px 0 rgba(0,0,0,.09)
 }
 .pdftoolbar .dropdown-content a {
+  all: initial;
+  font: inherit;
   color: #000;
   padding: 6px 8px;
   text-decoration: none;

@@ -17,7 +17,7 @@
     width: 4em !important;
     font-size: 12px;
 }
-.pdftoolbar button, .pdftoolbar label.button {
+.pdftoolbar button, .pdftoolbar label.button, .pdftoolbar a.button {
     min-width: 26px;
     height: 28px;
     border: none;
@@ -27,19 +27,20 @@
     line-height: 12px;
     font-size: 14px;
     background-color: #ddd;
+    cursor: pointer;
 }
 .pdftoolbar button i, .pdftoolbar label.button i {
     font-size: 26px;
     padding: 0;
     margin: 0;
 }
-.pdftoolbar button:hover, .pdftoolbar label.button:hover {
+.pdftoolbar button:hover, .pdftoolbar label.button:hover, .pdftoolbar a.button:hover {
     background-color: #ccc;
 }
 button.pushed {
     background-color: #aaa !important;
 }
-.pdftoolbar a {
+.pdftoolbar a.button {
     color: inherit;
 }
 .pdftoolbar .divider {
@@ -56,7 +57,6 @@ button.pushed {
     border-top: 1px solid #bbb;
     margin: 0.25em 0;
 }
-
 .pdftoolbar .dropdown.dropdown-right {
     float: right
 }
@@ -86,6 +86,8 @@ button.pushed {
 }
 /* Links inside the dropdown */
 .pdftoolbar .dropdown-content a {
+    all: initial;
+    font: inherit;
     color: black;
     padding: 6px 8px;
     text-decoration: none;
