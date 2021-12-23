@@ -230,7 +230,7 @@ In this example, we have included two independent documents (which at the end, h
 
 Check the example at [PDFjs-viewer example-3](https://codepen.io/dealfonso/pen/dyVVYgP)
 
-## Collaborations
+## Collaborations
 
 I really appreciate collaborations either by detecting bugs or by suggesting new features for this project. In this case, you can open issues and I'll try to address them in a best-effort basis.
 
