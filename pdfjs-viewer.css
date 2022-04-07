@@ -34,8 +34,7 @@
   margin-top: 1em;
   margin-left: auto;
   margin-right: auto;
-  box-shadow: 0 4px 8px 0 rgba(0,0,0,.1),0 6px 20px 0 rgba(0,0,0,.09);
-  display: flex
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,.1),0 6px 20px 0 rgba(0,0,0,.09)
 }
 .pdfpage canvas {
   position: absolute;
@@ -137,10 +136,12 @@ button.pushed {
   border-top: 1px solid #bbb;
   margin: .25em 0
 }
-.pdftoolbar .dropdown.dropdown-right {
+.pdftoolbar .dropdown.dropdown-right,
+.pdftoolbar .dropdown.right {
   float: right
 }
-.pdftoolbar .dropdown.dropdown-right .dropdown-content {
+.pdftoolbar .dropdown.dropdown-right .dropdown-content,
+.pdftoolbar .dropdown.right .dropdown-content {
   right: 0;
   left: auto
 }

@@ -53,6 +53,22 @@
         input[type="file"] {
             display: none;
         }
+        .numbering {
+            width: 100%;
+            text-align: center;
+            font-size: 0.75em;
+            margin-top: 0.25em;
+            color: #555;
+        }
+        .thumbnails .pdfpage {
+            margin-bottom: 2em !important;
+        }
+        .thumbnails .pdfpage.hidden {
+            opacity: 0.3;
+        }
+        .maindoc .pdfpage.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -90,6 +106,7 @@
                     <a href="#" onclick='pdfViewer.setZoom(4); return false;'>400%</a>
                 </div>                    
             </div>
+            <button onclick="hideselected();"><i class="material-icons-outlined">block</i></button>
             <div class="divider"></div>
             <label class="button" for="opendoc"><i class="material-icons-outlined">file_open</i></label>
             <input id="opendoc" type="file" accept="application/pdf">
@@ -161,6 +178,14 @@ function togglethumbs(el) {
         document.querySelector('.thumbnails').classList.remove('hide');
     }
 }
+/** Toggles hiding the current page */
+function hideselected() {
+    let $selected = pdfThumbnails.$container.find('.selected');
+    let i = $selected.data('page');
+    $selected.toggleClass('hidden');
+    pdfViewer.$container.find('.pdfpage[data-page="' + i + '"]').toggleClass('hidden');
+    pdfViewer.scrollToPage(i);
+}
 /** Now create the PDFjsViewer object in the DIV */
 let pdfViewer = new PDFjsViewer($('.maindoc'), {
     zoomValues: [ 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4 ],
@@ -176,10 +201,12 @@ let pdfViewer = new PDFjsViewer($('.maindoc'), {
         let pageno = $(page).data('page');
         let pagetotal = this.getPageCount();
 
-        pdfThumbnails.setActivePage(pageno);
-        $('#pageno').val(pageno);
-        $('#pageno').attr('max', pagetotal);
-        $('#pagecount').text('de ' + pagetotal);
+        if (! $(page).hasClass('hidden')) {
+            pdfThumbnails.setActivePage(pageno);
+            $('#pageno').val(pageno);
+            $('#pageno').attr('max', pagetotal);
+            $('#pagecount').text('de ' + pagetotal);
+        }
     },
 
     /** zoom to fit when the document is loaded and create the object if wanted to be downloaded */
@@ -200,11 +227,13 @@ pdfViewer.loadDocument(PDFFILE).then(function() {
 /** Create the thumbnails */
 let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
     zoomFillArea: 0.7,
-    onNewPage: function(page) {
+    onNewPage: function(page, i) {
+        $('<div class="numbering">').text(i).appendTo(page);
         page.on('click', function() {
+            pdfThumbnails.setActivePage(page.data('page'));                
             if (!pdfViewer.isPageVisible(page.data('page'))) {
                 pdfViewer.scrollToPage(page.data('page'));
-            }
+            } 
         })
     },
     onDocumentReady: function() {
