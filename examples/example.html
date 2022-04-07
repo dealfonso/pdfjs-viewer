@@ -106,7 +106,7 @@
                     <a href="#" onclick='pdfViewer.setZoom(4); return false;'>400%</a>
                 </div>                    
             </div>
-            <button onclick="hideselected();"><i class="material-icons-outlined">block</i></button>
+            <button id="hideselected" onclick="hideselected();"><i class="material-icons-outlined">block</i></button>
             <div class="divider"></div>
             <label class="button" for="opendoc"><i class="material-icons-outlined">file_open</i></label>
             <input id="opendoc" type="file" accept="application/pdf">
@@ -243,7 +243,12 @@ let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
 
 pdfThumbnails.setActivePage = function(pageno) {
     this.$container.find('.pdfpage').removeClass('selected');
+
     let $npage = this.$container.find('.pdfpage[data-page="' + pageno + '"]').addClass('selected');
+    $('#hideselected').removeClass('pushed');
+    if ($npage.hasClass('hidden'))
+        $('#hideselected').addClass('pushed');
+
     if (!this.isPageVisible(pageno)) {
         this.scrollToPage(pageno);
     }
