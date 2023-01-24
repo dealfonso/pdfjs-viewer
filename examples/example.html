@@ -139,7 +139,10 @@
     </div>
 </body>
 <script>
-let PDFFILE="test.pdf";
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+const PDFFILE = urlParams.get('doc')??"test.pdf";
+
 function dataURItoBinArray(data) {
     // taken from: https://stackoverflow.com/a/11954337/14699733
     var binary = atob(data);
