@@ -16,6 +16,37 @@
 (function(exports, $) {
     'use strict';
     
+    let defaults = {
+        // Threshold to consider that a page is visible
+        visibleThreshold: 0.5,
+        // Number of extra pages to load (appart from the visible)
+        extraPagesToLoad: 3,
+        // The class used for each page (the div that wraps the content of the page)
+        pageClass: "pdfpage",
+        // The class used for the content of each page (the div that contains the page)
+        contentClass: "content-wrapper",
+        // Function called when a document has been loaded and its structure has been created
+        onDocumentReady: () => {},
+        // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
+        onNewPage: (page, i) => {},
+        // Function called when a page is rendered
+        onPageRender: (page, i) => {},
+        // Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
+        errorPage: () => {
+            $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
+        },
+        // Posible zoom values to iterate over using "in" and "out"
+        zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
+        // Function called when the zoom level changes (it receives the zoom level)
+        onZoomChange: (zoomlevel) => {},
+        // Function called whenever the active page is changed (the active page is the one that is shown in the viewer)
+        onActivePageChanged: (page, i) => {},
+        // Percentage of the container that will be filled with the page
+        zoomFillArea: 0.95,
+        // Function called to get the content of an empty page
+        emptyContent: () => $('<div class="loader"></div>')
+    }
+    
     // Class used to help in zoom management; probably it can be moved to the main class, but it is used to group methods
     class Zoomer {
         /**
@@ -121,36 +152,7 @@
          */
         constructor($container, options = {}) {
     
-            let defaults = {
-                visibleThreshold: 0.5,
-                extraPagesToLoad: 3,
-                // The class used for each page (the div that wraps the content of the page)
-                pageClass: "pdfpage",
-                // The class used for the content of each page (the div that contains the page)
-                contentClass: "content-wrapper",
-                // Function called when a document has been loaded and its structure has been created
-                onDocumentReady: () => {},
-                // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
-                onNewPage: (page, i) => {},
-                // Function called when a page is rendered
-                onPageRender: (page, i) => {},
-                // Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
-                errorPage: () => {
-                    $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
-                },
-                // Posible zoom values to iterate over using "in" and "out"
-                zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
-                // Function called when the zoom level changes (it receives the zoom level)
-                onZoomChange: (zoomlevel) => {},
-                // Function called whenever the active page is changed (the active page is the one that is shown in the viewer)
-                onActivePageChanged: (page, i) => {},
-                // Percentage of the container that will be filled with the page
-                zoomFillArea: 0.95,
-                // Function called to get the content of an empty page
-                emptyContent: () => $('<div class="loader"></div>')
-            }
-    
-            this.settings = $.extend(defaults, options);
+            this.settings = $.extend(Object.assign({}, defaults), options);
     
             // Create the zoomer helper
             this._zoom = new Zoomer(this, {
@@ -170,6 +172,9 @@
             // Initialize some variables
             this.pages = [];
             this.pdf = null;
+
+            // Whether the document is ready or not
+            this._documentReady = false;
         }    
     
         /**
@@ -197,8 +202,13 @@
             this._visiblePages(true);
 
             // Call the callback (if provided)
-            if (typeof this.settings.onZoomChange === "function")
-                this.settings.onZoomChange.call(this, this._zoom.current);
+            if (this._documentReady) {
+                if (typeof this.settings.onZoomChange === "function")
+                    this.settings.onZoomChange.call(this, this._zoom.current);                
+                this.$container.get(0).dispatchEvent(new CustomEvent("zoomchange", { detail: { zoom: this._zoom.current } }));
+            }
+
+            return this._zoom.current;
         }
     
         /**
@@ -303,9 +313,9 @@
                 .data('height', pageinfo.height)
                 .data('zoom', this._zoom.current)
                 .addClass(this.settings.pageClass)
-                .width(pageinfo.width)
-                .height(pageinfo.height);
-
+                .width(pageinfo.width * this._zoom.current)
+                .height(pageinfo.height * this._zoom.current);
+                
             let $content = $(`<div class="${this.settings.contentClass}">`)
                 .width(pageinfo.width)
                 .height(pageinfo.height);
@@ -352,8 +362,11 @@
                     this._placeSkeleton(pageinfo, i);
     
                     // Call the callback function (if provided)
-                    if (typeof this.settings.onNewPage === "function") {
-                        this.settings.onNewPage.call(this, pageinfo.$div, i);
+                    if (this._documentReady) {
+                        if (typeof this.settings.onNewPage === "function") {
+                            this.settings.onNewPage.call(this, pageinfo.$div, i);
+                        }
+                        this.$container.get(0).dispatchEvent(new CustomEvent("newpage", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                     }
                 }
             }
@@ -366,8 +379,12 @@
         _setActivePage(i) {
             if (this._activePage !== i) {
                 this._activePage = i;
-                if (typeof this.settings.onActivePageChanged === "function")
-                    this.settings.onActivePageChanged.call(this, this.getActivePage(), i);
+                let activePage = this.getActivePage();
+                if (this._documentReady) {
+                    if (typeof this.settings.onActivePageChanged === "function")
+                        this.settings.onActivePageChanged.call(this, activePage, i);
+                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", { detail: { activePageNumber: i, activePage: activePage==null?null:activePage.get(0) } }));
+                }
             }
         }
     
@@ -530,9 +547,10 @@
                 return;
             }
             let position = $page.position();
+            let containerPosition = this.$container.position();
             if (position !== undefined) {
-                this.$container.get(0).scrollTop = this.$container.get(0).scrollTop + position.top;
-                this.$container.get(0).scrollLeft = this.$container.get(0).scrollLeft + position.left;
+                this.$container.get(0).scrollTop = this.$container.get(0).scrollTop + position.top - containerPosition.top;
+                this.$container.get(0).scrollLeft = this.$container.get(0).scrollLeft + position.left - containerPosition.left;
             }
             this._setActivePage(i);
         }
@@ -549,13 +567,14 @@
     
             // Calculate the pixel ratio of the device (we'll use a minimum of 1)
             let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
-    
             // Update the information that we know about the page to the actually loaded page
             let viewport = page.getViewport({rotation: this._rotation, scale: this._zoom.current * pixel_ratio});
             pageinfo.width = (viewport.width / this._zoom.current) / pixel_ratio;
             pageinfo.height = (viewport.height / this._zoom.current) / pixel_ratio;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
+            pageinfo.$div.width(pageinfo.width * this._zoom.current);
+            pageinfo.$div.height(pageinfo.height * this._zoom.current);
             pageinfo.loaded = true;
     
             // Create the canvas and prepare the rendering context
@@ -575,8 +594,11 @@
                 this._setPageContent(pageinfo.$div, $canvas);
 
                 // Call the callback (if provided)
-                if (typeof this.settings.onPageRender === "function") {
-                    this.settings.onPageRender.call(this, pageinfo.$div, i);
+                if (this._documentReady) {
+                    if (typeof this.settings.onPageRender === "function") {
+                        this.settings.onPageRender.call(this, pageinfo.$div, i);
+                    }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("pagerender", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                 }
                 return pageinfo;
             }.bind(this));
@@ -691,6 +713,9 @@
          * @param {string} document - the url of the document to load
          */
         async loadDocument(document) {
+            // The document is not ready while loading
+            this._documentReady = false;
+
             // Now prepare a placeholder for the pages
             this.pages = [];
     
@@ -712,8 +737,73 @@
                 if (typeof this.settings.onDocumentReady === "function") {
                     this.settings.onDocumentReady.call(this);
                 }
+                this.$container.get(0).dispatchEvent(new CustomEvent("documentready", { detail: { document: this.pdf } }));
+
+                // This is a trick to force active page changed event triggering after the document is ready
+                this._setActivePage(0)
+                this._documentReady = true;
+                this._setActivePage(1)
             }.bind(this));
         }
     }
+
+    function recoverAttributes(target, attributeDefaults) {
+        const camelcaseToSnakecase = str => str.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+        let $target = $(target);
+        let result = {};
+        if ($target.length > 0) {
+            $target = $($target[0]);
+            for (let originalAttributeName in attributeDefaults) {
+                let attributeName = camelcaseToSnakecase(originalAttributeName)
+                let attributeValue = $target.attr(attributeName);
+                if (attributeValue != null) {
+                    switch (typeof(attributeDefaults[originalAttributeName])) {
+                        case 'float':
+                            try {
+                                attributeValue = parseFloat(attributeValue);
+                            } catch (_) {
+                            }
+                            break;
+                        case 'number':
+                            try {
+                                attributeValue = parseInt(attributeValue);
+                            } catch (_) {
+                            }
+                            break;
+                        case 'function':
+                            let functionString = attributeValue;
+                            attributeValue = function() { eval(functionString); }.bind(target[0]); break;
+                        default:
+                            break;
+                    }
+                    result[originalAttributeName] = attributeValue;
+                }
+            };
+        }
+        return result;
+    }
+
+    function init(element) {
+        let options = recoverAttributes(element, Object.assign({
+            pdfDocument: "", initialZoom: ""
+        }, defaults));
+        let pdfViewer = new PDFjsViewer($(element), options);
+        if (options["pdfDocument"] != null) {
+            pdfViewer.loadDocument(options["pdfDocument"]).then(function() {
+                if (options["initialZoom"] != null) {
+                    pdfViewer.setZoom(options["initialZoom"]);
+                }
+            })
+        }
+        element.get(0).pdfViewer = pdfViewer;
+    }
+
+    $(function() {
+        $('.pdfjs-viewer').each(function() {
+            let $viewer = $(this);
+            init($viewer);
+        })
+    });
+
     exports.PDFjsViewer = PDFjsViewer;
 })(window, jQuery)

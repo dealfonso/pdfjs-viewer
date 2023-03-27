@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="../js/pdfjs-viewer.js"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
     <script>
     // Let's initialize the PDFjs library
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
     <style>
         .pdftoolbar, .pdftoolbar i {
@@ -61,23 +61,12 @@
                     <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('fit')"><i class="material-icons-outlined">fit_screen</i></button>
                 </div>
             </div>
-            <div class="pdfjs-viewer h-100">
+            <div class="pdfjs-viewer h-100" pdf-document="test.pdf" initial-zoom="fit" on-document-ready="pdfViewer = this.pdfViewer;">
             </div>    
         </div>
     </div>
 </body>
 <script>
-    let pdfViewer = new PDFjsViewer($('.pdfjs-viewer'), {
-        onZoomChange: function(zoom) {
-            zoom = parseInt(zoom * 10000) / 100;
-            $('.zoomval').text(zoom + '%');
-        },
-        onActivePageChanged: function(page, pageno) {
-            $('.pageno').text(pageno + '/' + this.getPageCount());
-        },
-    });
-    pdfViewer.loadDocument("test.pdf").then(function() {
-        pdfViewer.setZoom('fit');
-    });
+    var pdfViewer;
 </script>
 </html>

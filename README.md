@@ -15,19 +15,27 @@ pdfViewer.loadDocument("https://github.com/dealfonso/pdfjs-viewer/raw/main/examp
 </script>
 ```
 
+or even easier
+
+```html
+<div class="pdfjs-viewer" pdf-document="https://github.com/dealfonso/pdfjs-viewer/raw/main/examples/test.pdf" initial-zoom="fit">
+```
+
+
 The PDFjsViewer is customizable and has different options and callbacks that enable it to be easily integrated in your application.
 
 Some examples included in the distribution:
 - A simple PDF viewer, for a simple document.
+- A simpler PDF viewer, using the declarative way (i.e. setting the _pdfjs-viewer_ class to any object).
 - A PDF viewer with a toolbar that enables to navigate through the document.
 - A PDF viewer with thumbnails that interact with the main document.
-- A PDF viewer in which is is possible to create selections and move them accross different pages.
+- A PDF viewer in which it is possible to create selections and move them accross different pages.
 
 **DISCLAIMER:** _PDFjs-viewer is written from scratch and has nothing to do with the example viewer in the PDF.js distribution._
 
 ## Is PDFjs-viewer for me?
 
-Well, if you need a PDF viewer in your web application, you can try to embed the viewer that comes in the [PDF.js distribution](https://github.com/mozilla/pdf.js) in an `iframe`. It is well supported and has a lot of background.
+Well, if you need a PDF viewer in your web application, you can try to embed the viewer that comes in the [PDF.js distribution](https://github.com/mozilla/pdf.js) in an `iframe`. It is well-supported and has a lot of background.
 
 But if (as in my case) you need more than simply a PDF viewer embedded in an `iframe`: you need to draw in the pages of the PDF, need to add more features to your viewer, customize the style, etc., PDFjs-viewer is worth a try. 
 
@@ -47,10 +55,10 @@ PDFjs-viewer depends on Mozilla's [PDF.js library](https://mozilla.github.io/pdf
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script>
 var pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 </script>
 ```
 
@@ -88,8 +96,8 @@ It is possible to use `pdfjs-viewer` directly from a CDN:
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.0.0/pdfjs-viewer.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jsutilslib/pdfjs-viewer@1.0.0/pdfjs-viewer.min.css">
+<script src="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.1/pdfjs-viewer.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jsutilslib/pdfjs-viewer@1.1/pdfjs-viewer.min.css">
 ```
 
 ## API
@@ -156,6 +164,31 @@ The public methods of the PDFViewer class are the next:
 - `setZoom(zoom)`: Sets the current zoom level and applies it to all the pages (it is possible to use a float value which represents a fraction or a keyword 'in', 'out', 'width', 'height' or 'fit').
 - `getZoom()`: Obtain the current zoom level
 - `rotate(deg, accumulate = false)`: Rotates the pages of the document `deg` degrees (if `accumulate` is set to `false`), or increases the rotation by `deg` degrees (if `accumulate` is set to `true`).
+
+## Declarative
+
+If simply need a PDF viewer in a _div_, you can use the declarative way, which means that whenever an object is declared with class `pdfjs-viewer`, it is attached a `PDFjsViewer` object as the property `pdfViewer` of the HTML object.
+
+So it is possible to use a tag like the next one:
+
+```html
+<div id="viewer" class="pdfjs-viewer" pdf-document="https://github.com/dealfonso/pdfjs-viewer/raw/main/examples/test.pdf" initial-zoom="fit">
+```
+
+And the div will automatically load the pdf file and when loaded, it will zoom to fit the first page.
+
+Now if we get the object is obtained in _javascript_, the `pdfViewer` property will contain the object.
+
+```javascript
+let viewer = document.getElementById("viewer");
+console.log(viewer.pdfViewer);
+```
+
+The rest of options in the API section can also be set as parameters for this tag as _snake-case_. For example, it is possible to add an `onDocumentReady` handler in the next way:
+
+```html
+<div class="pdfjs-viewer" pdf-document="https://github.com/dealfonso/pdfjs-viewer/raw/main/examples/test.pdf" initial-zoom="fit" on-document-ready="pdfViewer = this.pdfViewer">
+```
 
 ## Examples
 

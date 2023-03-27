@@ -16,6 +16,23 @@
 
 (function(exports, $) {
     "use strict";
+    let defaults = {
+        visibleThreshold: .5,
+        extraPagesToLoad: 3,
+        pageClass: "pdfpage",
+        contentClass: "content-wrapper",
+        onDocumentReady: () => {},
+        onNewPage: (page, i) => {},
+        onPageRender: (page, i) => {},
+        errorPage: () => {
+            $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"));
+        },
+        zoomValues: [ .25, .5, .75, 1, 1.25, 1.5, 2, 4, 8 ],
+        onZoomChange: zoomlevel => {},
+        onActivePageChanged: (page, i) => {},
+        zoomFillArea: .95,
+        emptyContent: () => $('<div class="loader"></div>')
+    };
     class Zoomer {
         constructor(viewer, options = {}) {
             let defaults = {
@@ -86,24 +103,7 @@
     }
     class PDFjsViewer {
         constructor($container, options = {}) {
-            let defaults = {
-                visibleThreshold: .5,
-                extraPagesToLoad: 3,
-                pageClass: "pdfpage",
-                contentClass: "content-wrapper",
-                onDocumentReady: () => {},
-                onNewPage: (page, i) => {},
-                onPageRender: (page, i) => {},
-                errorPage: () => {
-                    $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"));
-                },
-                zoomValues: [ .25, .5, .75, 1, 1.25, 1.5, 2, 4, 8 ],
-                onZoomChange: zoomlevel => {},
-                onActivePageChanged: (page, i) => {},
-                zoomFillArea: .95,
-                emptyContent: () => $('<div class="loader"></div>')
-            };
-            this.settings = $.extend(defaults, options);
+            this.settings = $.extend(Object.assign({}, defaults), options);
             this._zoom = new Zoomer(this, {
                 zoomValues: this.settings.zoomValues,
                 fillArea: this.settings.zoomFillArea
@@ -113,6 +113,7 @@
             this._setScrollListener();
             this.pages = [];
             this.pdf = null;
+            this._documentReady = false;
         }
         setZoom(zoom) {
             let container = this.$container.get(0);
@@ -125,7 +126,15 @@
             container.scrollLeft = prevScroll.left * this._zoom.current / prevzoom;
             container.scrollTop = prevScroll.top * this._zoom.current / prevzoom;
             this._visiblePages(true);
-            if (typeof this.settings.onZoomChange === "function") this.settings.onZoomChange.call(this, this._zoom.current);
+            if (this._documentReady) {
+                if (typeof this.settings.onZoomChange === "function") this.settings.onZoomChange.call(this, this._zoom.current);
+                this.$container.get(0).dispatchEvent(new CustomEvent("zoomchange", {
+                    detail: {
+                        zoom: this._zoom.current
+                    }
+                }));
+            }
+            return this._zoom.current;
         }
         getZoom() {
             return this._zoom.current;
@@ -184,7 +193,7 @@
                 pageinfo.height = page.height;
             }
             console.assert(pageinfo.width > 0 && pageinfo.height > 0, "Page width and height must be greater than 0");
-            pageinfo.$div = $(`<div id="page-${i}">`).attr("data-page", i).data("width", pageinfo.width).data("height", pageinfo.height).data("zoom", this._zoom.current).addClass(this.settings.pageClass).width(pageinfo.width).height(pageinfo.height);
+            pageinfo.$div = $(`<div id="page-${i}">`).attr("data-page", i).data("width", pageinfo.width).data("height", pageinfo.height).data("zoom", this._zoom.current).addClass(this.settings.pageClass).width(pageinfo.width * this._zoom.current).height(pageinfo.height * this._zoom.current);
             let $content = $(`<div class="${this.settings.contentClass}">`).width(pageinfo.width).height(pageinfo.height);
             pageinfo.$div.append($content);
             this._cleanPage(pageinfo.$div);
@@ -208,8 +217,16 @@
                     pageinfo = this._createSkeleton(pageinfo, i);
                     this.pages[i] = pageinfo;
                     this._placeSkeleton(pageinfo, i);
-                    if (typeof this.settings.onNewPage === "function") {
-                        this.settings.onNewPage.call(this, pageinfo.$div, i);
+                    if (this._documentReady) {
+                        if (typeof this.settings.onNewPage === "function") {
+                            this.settings.onNewPage.call(this, pageinfo.$div, i);
+                        }
+                        this.$container.get(0).dispatchEvent(new CustomEvent("newpage", {
+                            detail: {
+                                pageNumber: i,
+                                page: pageinfo.$div.get(0)
+                            }
+                        }));
                     }
                 }
             }
@@ -217,7 +234,16 @@
         _setActivePage(i) {
             if (this._activePage !== i) {
                 this._activePage = i;
-                if (typeof this.settings.onActivePageChanged === "function") this.settings.onActivePageChanged.call(this, this.getActivePage(), i);
+                let activePage = this.getActivePage();
+                if (this._documentReady) {
+                    if (typeof this.settings.onActivePageChanged === "function") this.settings.onActivePageChanged.call(this, activePage, i);
+                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", {
+                        detail: {
+                            activePageNumber: i,
+                            activePage: activePage == null ? null : activePage.get(0)
+                        }
+                    }));
+                }
             }
         }
         _areaOfPageVisible($page) {
@@ -324,9 +350,10 @@
                 return;
             }
             let position = $page.position();
+            let containerPosition = this.$container.position();
             if (position !== undefined) {
-                this.$container.get(0).scrollTop = this.$container.get(0).scrollTop + position.top;
-                this.$container.get(0).scrollLeft = this.$container.get(0).scrollLeft + position.left;
+                this.$container.get(0).scrollTop = this.$container.get(0).scrollTop + position.top - containerPosition.top;
+                this.$container.get(0).scrollLeft = this.$container.get(0).scrollLeft + position.left - containerPosition.left;
             }
             this._setActivePage(i);
         }
@@ -341,6 +368,8 @@
             pageinfo.height = viewport.height / this._zoom.current / pixel_ratio;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
+            pageinfo.$div.width(pageinfo.width * this._zoom.current);
+            pageinfo.$div.height(pageinfo.height * this._zoom.current);
             pageinfo.loaded = true;
             let $canvas = $("<canvas></canvas>");
             let canvas = $canvas.get(0);
@@ -354,8 +383,16 @@
             };
             return page.render(renderContext).promise.then(function() {
                 this._setPageContent(pageinfo.$div, $canvas);
-                if (typeof this.settings.onPageRender === "function") {
-                    this.settings.onPageRender.call(this, pageinfo.$div, i);
+                if (this._documentReady) {
+                    if (typeof this.settings.onPageRender === "function") {
+                        this.settings.onPageRender.call(this, pageinfo.$div, i);
+                    }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("pagerender", {
+                        detail: {
+                            pageNumber: i,
+                            page: pageinfo.$div.get(0)
+                        }
+                    }));
                 }
                 return pageinfo;
             }.bind(this));
@@ -436,6 +473,7 @@
             }.bind(this));
         }
         async loadDocument(document) {
+            this._documentReady = false;
             this.pages = [];
             this.$container.find(`.${this.settings.pageClass}`).remove();
             this.pdf = null;
@@ -449,8 +487,76 @@
                 if (typeof this.settings.onDocumentReady === "function") {
                     this.settings.onDocumentReady.call(this);
                 }
+                this.$container.get(0).dispatchEvent(new CustomEvent("documentready", {
+                    detail: {
+                        document: this.pdf
+                    }
+                }));
+                this._setActivePage(0);
+                this._documentReady = true;
+                this._setActivePage(1);
             }.bind(this));
         }
     }
+    function recoverAttributes(target, attributeDefaults) {
+        const camelcaseToSnakecase = str => str.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+        let $target = $(target);
+        let result = {};
+        if ($target.length > 0) {
+            $target = $($target[0]);
+            for (let originalAttributeName in attributeDefaults) {
+                let attributeName = camelcaseToSnakecase(originalAttributeName);
+                let attributeValue = $target.attr(attributeName);
+                if (attributeValue != null) {
+                    switch (typeof attributeDefaults[originalAttributeName]) {
+                      case "float":
+                        try {
+                            attributeValue = parseFloat(attributeValue);
+                        } catch (_) {}
+                        break;
+
+                      case "number":
+                        try {
+                            attributeValue = parseInt(attributeValue);
+                        } catch (_) {}
+                        break;
+
+                      case "function":
+                        let functionString = attributeValue;
+                        attributeValue = function() {
+                            eval(functionString);
+                        }.bind(target[0]);
+                        break;
+
+                      default:
+                        break;
+                    }
+                    result[originalAttributeName] = attributeValue;
+                }
+            }
+        }
+        return result;
+    }
+    function init(element) {
+        let options = recoverAttributes(element, Object.assign({
+            pdfDocument: "",
+            initialZoom: ""
+        }, defaults));
+        let pdfViewer = new PDFjsViewer($(element), options);
+        if (options["pdfDocument"] != null) {
+            pdfViewer.loadDocument(options["pdfDocument"]).then(function() {
+                if (options["initialZoom"] != null) {
+                    pdfViewer.setZoom(options["initialZoom"]);
+                }
+            });
+        }
+        element.get(0).pdfViewer = pdfViewer;
+    }
+    $(function() {
+        $(".pdfjs-viewer").each(function() {
+            let $viewer = $(this);
+            init($viewer);
+        });
+    });
     exports.PDFjsViewer = PDFjsViewer;
 })(window, jQuery);
