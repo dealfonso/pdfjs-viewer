@@ -222,7 +222,7 @@ In this snippet, we are also using some of the callbacks that PDFjs-viewer provi
     <p>This is a simple document embeded in a div (integrated with bootstrap)</p>
   </div>
   <div class="row col-6 offset-sm-3 pdfviewer p-0 row h-100">
-    <div class="pdftoolbar text-center row m-0 p-0">
+    <div class="pdfjs-toolbar text-center row m-0 p-0">
         ...
     </div>
     <div class="pdfjs-viewer h-100">

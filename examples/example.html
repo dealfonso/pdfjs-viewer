@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="../js/pdfjs-viewer.js"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
-    <link rel="stylesheet" href="../css/pdftoolbar.css">
+    <link rel="stylesheet" href="../css/pdfjs-toolbar.css">
     <script>
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
@@ -73,7 +73,7 @@
 </head>
 <body>
     <div class="pdfviewer">
-        <div class="pdftoolbar">
+        <div class="pdfjs-toolbar">
             <button class="pushed" onclick="togglethumbs(this);"><i class="material-icons-outlined">view_sidebar</i></button>
             <div class="v-sep"></div>
             <button onclick="pdfViewer.prev();"><i class="material-icons-outlined">arrow_upward</i></button>

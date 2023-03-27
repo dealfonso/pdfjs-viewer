@@ -16,20 +16,20 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
     <style>
-        .pdftoolbar, .pdftoolbar i {
+        .pdfjs-toolbar, .pdfjs-toolbar i {
             font-size: 14px;
         }
-        .pdftoolbar span {
+        .pdfjs-toolbar span {
             margin-right: 0.5em;
             margin-left: 0.5em;
             width: 4em !important;
             font-size: 12px;
         }
-        .pdftoolbar .btn-sm {
+        .pdfjs-toolbar .btn-sm {
             padding: 0.12rem 0.25rem;
 
         }
-        .pdftoolbar {
+        .pdfjs-toolbar {
             width: 100%;
             height: auto;
             background: #ddd;
@@ -44,7 +44,7 @@
             <p>This is a simple document embeded in a div (integrated with bootstrap)</p>
         </div>
         <div class="row col-6 offset-md-3 pdfviewer p-0 row h-100">
-            <div class="pdftoolbar text-center row m-0 p-0">
+            <div class="pdfjs-toolbar text-center row m-0 p-0">
                 <div class="col-12 col-lg-6 my-1">
                     <button class="btn btn-secondary btn-sm btn-first" onclick="pdfViewer.first()"><i class="material-icons-outlined">skip_previous</i></button>
                     <button class="btn btn-secondary btn-sm btn-prev" onclick="pdfViewer.prev(); return false;"><i class="material-icons-outlined">navigate_before</i></button>

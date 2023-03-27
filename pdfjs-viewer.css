@@ -72,7 +72,7 @@
     transform: rotate(360deg)
   }
 }
-.pdftoolbar {
+.pdfjs-toolbar {
   width: 100%;
   height: 32px;
   background: #ddd;
@@ -82,18 +82,18 @@
   margin: 0;
   padding: 0
 }
-.pdftoolbar * {
+.pdfjs-toolbar * {
   margin: auto 0
 }
-.pdftoolbar span {
+.pdfjs-toolbar span {
   margin-right: .5em;
   margin-left: .5em;
   width: 4em!important;
   font-size: 12px
 }
-.pdftoolbar a.button,
-.pdftoolbar button,
-.pdftoolbar label.button {
+.pdfjs-toolbar a.button,
+.pdfjs-toolbar button,
+.pdfjs-toolbar label.button {
   min-width: 26px;
   height: 28px;
   border: none;
@@ -105,56 +105,56 @@
   background-color: #ddd;
   cursor: pointer
 }
-.pdftoolbar button i,
-.pdftoolbar label.button i {
+.pdfjs-toolbar button i,
+.pdfjs-toolbar label.button i {
   font-size: 26px;
   padding: 0;
   margin: 0
 }
-.pdftoolbar a.button:hover,
-.pdftoolbar button:hover,
-.pdftoolbar label.button:hover {
+.pdfjs-toolbar a.button:hover,
+.pdfjs-toolbar button:hover,
+.pdfjs-toolbar label.button:hover {
   background-color: #ccc
 }
 button.pushed {
   background-color: #aaa!important
 }
-.pdftoolbar a.button {
+.pdfjs-toolbar a.button {
   color: inherit
 }
-.pdftoolbar .divider {
+.pdfjs-toolbar .divider {
   flex: 1
 }
-.pdftoolbar .v-sep {
+.pdfjs-toolbar .v-sep {
   width: 0;
   height: 20px;
   border-left: 1px solid #bbb
 }
-.pdftoolbar .h-sep {
+.pdfjs-toolbar .h-sep {
   width: 100%;
   height: 0;
   border-top: 1px solid #bbb;
   margin: .25em 0
 }
-.pdftoolbar .dropdown.dropdown-right,
-.pdftoolbar .dropdown.right {
+.pdfjs-toolbar .dropdown.dropdown-right,
+.pdfjs-toolbar .dropdown.right {
   float: right
 }
-.pdftoolbar .dropdown.dropdown-right .dropdown-content,
-.pdftoolbar .dropdown.right .dropdown-content {
+.pdfjs-toolbar .dropdown.dropdown-right .dropdown-content,
+.pdfjs-toolbar .dropdown.right .dropdown-content {
   right: 0;
   left: auto
 }
-.pdftoolbar .dropdown-value {
+.pdfjs-toolbar .dropdown-value {
   background-color: #ccc;
   padding: 0 4px 2;
   cursor: pointer
 }
-.pdftoolbar .dropdown-value i {
+.pdfjs-toolbar .dropdown-value i {
   width: auto;
   font-size: 12px
 }
-.pdftoolbar .dropdown-content {
+.pdfjs-toolbar .dropdown-content {
   display: none;
   position: absolute;
   margin-top: 0;
@@ -164,7 +164,7 @@ button.pushed {
   font-size: 12px;
   box-shadow: 0 4px 8px 0 rgba(0,0,0,.1),0 6px 20px 0 rgba(0,0,0,.09)
 }
-.pdftoolbar .dropdown-content a {
+.pdfjs-toolbar .dropdown-content a {
   all: initial;
   font: inherit;
   color: #000;
@@ -173,14 +173,14 @@ button.pushed {
   display: flex;
   cursor: pointer
 }
-.pdftoolbar .dropdown-content i {
+.pdfjs-toolbar .dropdown-content i {
   font-size: 16px;
   padding-right: .5em
 }
-.pdftoolbar .dropdown-content a:hover {
+.pdfjs-toolbar .dropdown-content a:hover {
   background-color: #ddd
 }
 .dropdown .dropdown-content:hover,
-.pdftoolbar .dropdown:hover .dropdown-content {
+.pdfjs-toolbar .dropdown:hover .dropdown-content {
   display: block
 }
