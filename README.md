@@ -97,7 +97,7 @@ It is possible to use `pdfjs-viewer` directly from a CDN:
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.1/pdfjs-viewer.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jsutilslib/pdfjs-viewer@1.1/pdfjs-viewer.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.1/pdfjs-viewer.min.css">
 ```
 
 ## API
