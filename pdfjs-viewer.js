@@ -31,7 +31,8 @@
         onZoomChange: zoomlevel => {},
         onActivePageChanged: (page, i) => {},
         zoomFillArea: .95,
-        emptyContent: () => $('<div class="loader"></div>')
+        emptyContent: () => $('<div class="loader"></div>'),
+        renderingScale: 1.5
     };
     class Zoomer {
         constructor(viewer, options = {}) {
@@ -359,13 +360,14 @@
         }
         _renderPage(page, i) {
             let pageinfo = this.pages[i];
-            let pixel_ratio = Math.max(window.devicePixelRatio || 1, 1);
+            let scale = this.settings.renderingScale;
+            let pixel_ratio = window.devicePixelRatio || 1;
             let viewport = page.getViewport({
                 rotation: this._rotation,
-                scale: this._zoom.current * pixel_ratio
+                scale: this._zoom.current * scale
             });
-            pageinfo.width = viewport.width / this._zoom.current / pixel_ratio;
-            pageinfo.height = viewport.height / this._zoom.current / pixel_ratio;
+            pageinfo.width = viewport.width / this._zoom.current / scale;
+            pageinfo.height = viewport.height / this._zoom.current / scale;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
             pageinfo.$div.width(pageinfo.width * this._zoom.current);
@@ -374,12 +376,14 @@
             let $canvas = $("<canvas></canvas>");
             let canvas = $canvas.get(0);
             let context = canvas.getContext("2d");
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+            canvas.height = viewport.height * pixel_ratio;
+            canvas.width = viewport.width * pixel_ratio;
             canvas.getContext("2d");
+            var transform = pixel_ratio !== 1 ? [ pixel_ratio, 0, 0, pixel_ratio, 0, 0 ] : null;
             var renderContext = {
                 canvasContext: context,
-                viewport: viewport
+                viewport: viewport,
+                transform: transform
             };
             return page.render(renderContext).promise.then(function() {
                 this._setPageContent(pageinfo.$div, $canvas);
@@ -542,15 +546,15 @@
             pdfDocument: "",
             initialZoom: ""
         }, defaults));
-        let pdfViewer = new PDFjsViewer($(element), options);
         if (options["pdfDocument"] != null) {
+            let pdfViewer = new PDFjsViewer($(element), options);
             pdfViewer.loadDocument(options["pdfDocument"]).then(function() {
                 if (options["initialZoom"] != null) {
                     pdfViewer.setZoom(options["initialZoom"]);
                 }
             });
+            element.get(0).pdfViewer = pdfViewer;
         }
-        element.get(0).pdfViewer = pdfViewer;
     }
     $(function() {
         $(".pdfjs-viewer").each(function() {

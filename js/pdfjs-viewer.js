@@ -44,7 +44,10 @@
         // Percentage of the container that will be filled with the page
         zoomFillArea: 0.95,
         // Function called to get the content of an empty page
-        emptyContent: () => $('<div class="loader"></div>')
+        emptyContent: () => $('<div class="loader"></div>'),
+        // The scale to which the pages are rendered (1.5 is the default value for the PDFjs viewer); a higher value will render the pages with a higher resolution
+        //   but it will consume more memory and CPU. A lower value will render the pages with a lower resolution, but they will be uglier.
+        renderingScale: 1.5,
     }
     
     // Class used to help in zoom management; probably it can be moved to the main class, but it is used to group methods
@@ -250,7 +253,6 @@
             // Create a scroll handler that prevents reentrance if called multiple times and the loading of pages is not finished
             let scrollLock = false;
             let scrollPos = { top:0 , left:0 };
-    
             this.__scrollHandler = function(e) {
                 // Avoid re-entrance for the same event while loading pages
                 if (scrollLock === true) {
@@ -564,13 +566,14 @@
         _renderPage(page, i) {
             // Get the pageinfo structure
             let pageinfo = this.pages[i];
+            let scale = this.settings.renderingScale;
     
             // Calculate the pixel ratio of the device (we'll use a minimum of 1)
-            let pixel_ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            let pixel_ratio = window.devicePixelRatio || 1;
             // Update the information that we know about the page to the actually loaded page
-            let viewport = page.getViewport({rotation: this._rotation, scale: this._zoom.current * pixel_ratio});
-            pageinfo.width = (viewport.width / this._zoom.current) / pixel_ratio;
-            pageinfo.height = (viewport.height / this._zoom.current) / pixel_ratio;
+            let viewport = page.getViewport({rotation: this._rotation, scale: this._zoom.current * scale});
+            pageinfo.width = (viewport.width / this._zoom.current) / scale;
+            pageinfo.height = (viewport.height / this._zoom.current) / scale;
             pageinfo.$div.data("width", pageinfo.width);
             pageinfo.$div.data("height", pageinfo.height);
             pageinfo.$div.width(pageinfo.width * this._zoom.current);
@@ -581,12 +584,16 @@
             let $canvas = $('<canvas></canvas>');
             let canvas = $canvas.get(0);
             let context = canvas.getContext('2d');
-            canvas.height = viewport.height; // * pixel_ratio;
-            canvas.width = viewport.width; //  * pixel_ratio;
-            canvas.getContext("2d"); //.scale(pixel_ratio, pixel_ratio);
+            canvas.height = viewport.height * pixel_ratio;
+            canvas.width = viewport.width * pixel_ratio;
+            canvas.getContext("2d")//.scale(pixel_ratio, pixel_ratio);
+            var transform = pixel_ratio !== 1
+                ? [pixel_ratio, 0, 0, pixel_ratio, 0, 0]
+                : null;
             var renderContext = {
                 canvasContext: context,
-                viewport: viewport
+                viewport: viewport,
+                transform: transform,
             };
     
             // Render the page and put the resulting rendered canvas into the page $div
@@ -787,15 +794,15 @@
         let options = recoverAttributes(element, Object.assign({
             pdfDocument: "", initialZoom: ""
         }, defaults));
-        let pdfViewer = new PDFjsViewer($(element), options);
         if (options["pdfDocument"] != null) {
+            let pdfViewer = new PDFjsViewer($(element), options);
             pdfViewer.loadDocument(options["pdfDocument"]).then(function() {
                 if (options["initialZoom"] != null) {
                     pdfViewer.setZoom(options["initialZoom"]);
                 }
             })
+            element.get(0).pdfViewer = pdfViewer;
         }
-        element.get(0).pdfViewer = pdfViewer;
     }
 
     $(function() {
