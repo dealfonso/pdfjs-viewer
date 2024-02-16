@@ -2,9 +2,9 @@
 
 The distribution of [Mozilla's PDF.js](https://mozilla.github.io/pdf.js/) includes an example of a viewer that can be used in a web page by means of inserting using an `iframe`. But the viewer cannot be easily used or customized for using it as part of a web application.
 
-PDFjs-viewer is a embeddable and easily customizable PDF viewer that is implemented using the PDF.js library. 
+PDFjs-viewer is an embeddable and easily customizable PDF viewer that is implemented using the PDF.js library. 
 
-So, if you have a `div` in your web application, you can convert it in a PDF viewer as in the next example:
+So, if you have a `div` in your web application, you can convert it into a PDF viewer as in the next example:
 
 ```html
 <div class="pdfjs-viewer">
@@ -27,9 +27,9 @@ The PDFjsViewer is customizable and has different options and callbacks that ena
 Some examples included in the distribution:
 - A simple PDF viewer, for a simple document.
 - A simpler PDF viewer, using the declarative way (i.e. setting the _pdfjs-viewer_ class to any object).
-- A PDF viewer with a toolbar that enables to navigate through the document.
+- A PDF viewer with a toolbar that enables navigation through the document.
 - A PDF viewer with thumbnails that interact with the main document.
-- A PDF viewer in which it is possible to create selections and move them accross different pages.
+- A PDF viewer in which it is possible to create selections and move them across different pages.
 
 **DISCLAIMER:** _PDFjs-viewer is written from scratch and has nothing to do with the example viewer in the PDF.js distribution._
 
@@ -43,10 +43,10 @@ But if (as in my case) you need more than simply a PDF viewer embedded in an `if
 
 ### Technical facts
 
-- The pages of each of the document are rendered on demand, to avoid having all the pages using the memory of the browser. The viewer detects the pages which are visible, and renders each of them. Although rendering is fast, using the options (i.e. `extraPagesToLoad`) it is advisable to render some extra pages to enable a better user experience when scrolling the document.
+- The pages of each document are rendered on demand, to avoid having all the pages using the memory of the browser. The viewer detects the visible pages, and renders each of them. Although rendering is fast, using the options (i.e. `extraPagesToLoad`) it is advisable to render some extra pages to enable a better user experience when scrolling the document.
 - PDFjs-viewer adds some callbacks that are called upon different events: `onDocumentReady`, `onNewPage`, `onPageRender`, `onZoomChange`, `onActivePageChanged`. Each callback is binded to the PDFjsViewer instance, so it is possible to use `this` to refer to it.
-- PDFjs-viewer renders the pages according to the size of the DIVs in which they are included. In this way, the amount of memory is adjusted to the minimum needed. It is important that the `PDFjsViewer` considers the `pixel_ratio` feature to increase the resolution of the images according to the features of the device in which the document has been opened (e.g. retina displays and so on).
-- PDFjs-viewer includes support for zooming the pages, so that the user does not need to deal with this typical feature.
+- PDFjs-viewer renders the pages according to the size of the DIVs in which they are included. In this way, the amount of memory is adjusted to the minimum needed. `PDFjsViewer` considers the `pixel_ratio` feature to increase the resolution of the images according to the features of the device in which the document has been opened (e.g. retina displays and so on).
+- PDFjs-viewer includes support for zooming the pages so that the user does not need to deal with this typical feature.
 
 ## Using
 
@@ -55,18 +55,18 @@ PDFjs-viewer depends on Mozilla's [PDF.js library](https://mozilla.github.io/pdf
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 var pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
 ```
 
 ### From source
 
-There is a single _javascript_ file that contain the whole PDFjsViewer class (in folder `js`).
+There is a single _javascript_ file that contains the whole PDFjsViewer class (in folder `js`).
 
-There are also a set of _css_ files that contain some styles to be used in the library and the examples. These files can also be included individually in your project, or combined into a single file by concatenating them.
+There are also a set of _css_ files that contain some styles to be used in the library and examples. These files can also be included individually in your project, or combined into a single file by concatenating them.
 
 A `Makefile` is provided to create the single all-in-one minified `js` and `css` files for the library.
 
@@ -82,7 +82,7 @@ cleancss css/*.css --format beautify | cat notice - > pdfjs-viewer.css
 cleancss css/*.css | cat notice.min - > pdfjs-viewer.min.css
 ```
 
-Now you can use files `pdfjs-viewer.min.js` and `pdfjs-viewer.min.css` in your project (jQuery is a prerrequisite):
+Now you can use files `pdfjs-viewer.min.js` and `pdfjs-viewer.min.css` in your project (jQuery is a prerequisite):
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -102,7 +102,7 @@ It is possible to use `pdfjs-viewer` directly from a CDN:
 
 ## API
 
-The creation of a PDF viewer consists in creating a `PDFjsViewer` object, setting the jQuery object in which the PDF viewer should be set, and configuring the options that we may need.
+The creation of a PDF viewer consists of creating a `PDFjsViewer` object, setting the jQuery object in which the PDF viewer should be set, and configuring the options that we may need.
 
 ```javascript
 var options = { 
@@ -143,6 +143,9 @@ emptyContent: () => $('<div class="loader"></div>')
 errorPage: () => {
     $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
 },
+// The scale to which the pages are rendered (1.5 is the default value for the PDFjs viewer); a higher value will render the pages with a higher resolution
+//   but it will consume more memory and CPU. A lower value will render the pages with a lower resolution, but they will be uglier.
+renderingScale: 1.5,
 ```
 
 ### Methods
@@ -255,7 +258,7 @@ Check the example at [PDFjs-viewer example-2](https://codepen.io/dealfonso/pen/q
 
 ### Example 3 - a document with thumbnails and a toolbar
 
-Each of the PDFjsViewer object is independent one from each other, and so it is possible to include multiple PDF documents in the same web application.
+Each of the PDFjsViewer objects is independent from each other, so it is possible to include multiple PDF documents in the same web application.
 
 In this example, we have included two independent documents (which at the end, have the same PDF source): one to act as thumbnails and other to act as the main document. Then using the callbacks, it is possible to make them interact one with the other to mark the _active page_ in the thumbnails when scrolling the main document, or showing a specific page when clicking on one of the pages in the thumbnails documents.
 
