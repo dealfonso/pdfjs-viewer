@@ -7,13 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
     <script src="../js/pdfjs-viewer.js"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
-    <script>
-    // Let's initialize the PDFjs library
-    var pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    <script type="module">
+        var { pdfjsLib } = globalThis;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.mjs';
     </script>
     <style>
         .pdfjs-toolbar, .pdfjs-toolbar i {
@@ -53,12 +52,12 @@
                     <button class="btn btn-secondary btn-sm btn-last" onclick="pdfViewer.last()"><i class="material-icons-outlined">skip_next</i></button>
                 </div>
                 <div class="col-12 col-lg-6 my-1">
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('out')"><i class="material-icons-outlined">zoom_out</i></button>
-                    <span class="zoomval">100%</span>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('in')"><i class="material-icons-outlined">zoom_in</i></button>
-                    <button class="btn btn-secondary btn-sm ms-3" onclick="pdfViewer.setZoom('width')"><i class="material-icons-outlined">swap_horiz</i></button>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('height')"><i class="material-icons-outlined">swap_vert</i></button>
-                    <button class="btn btn-secondary btn-sm" onclick="pdfViewer.setZoom('fit')"><i class="material-icons-outlined">fit_screen</i></button>
+                    <button class="btn btn-secondary btn-sm" onclick="setZoom('out')"><i class="material-icons-outlined">zoom_out</i></button>
+                    <span id="zoomval">100%</span>
+                    <button class="btn btn-secondary btn-sm" onclick="setZoom('in')"><i class="material-icons-outlined">zoom_in</i></button>
+                    <button class="btn btn-secondary btn-sm ms-3" onclick="setZoom('width')"><i class="material-icons-outlined">swap_horiz</i></button>
+                    <button class="btn btn-secondary btn-sm" onclick="setZoom('height')"><i class="material-icons-outlined">swap_vert</i></button>
+                    <button class="btn btn-secondary btn-sm" onclick="setZoom('fit')"><i class="material-icons-outlined">fit_screen</i></button>
                 </div>
             </div>
             <div class="pdfjs-viewer h-100" pdf-document="test.pdf" initial-zoom="fit" on-document-ready="pdfViewer = this.pdfViewer;">
@@ -68,5 +67,9 @@
 </body>
 <script>
     var pdfViewer;
+    function setZoom(zoom) {
+        pdfViewer.setZoom(zoom);
+        document.getElementById('zoomval').innerText = parseInt(pdfViewer.getZoom() * 100) + '%';
+    }
 </script>
 </html>

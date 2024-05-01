@@ -5,14 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
     <script src="../js/pdfjs-viewer.js"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
-    <script>
-    // Let's initialize the PDFjs library
-    var pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
-    </script>
     <style>
         .h-50 {
             height: 50% !important;
@@ -29,10 +24,22 @@
         </div>
     </div>
 </body>
-<script>
+<script type="module">
+    // We have set the type to module so that we make sure that the script is executed after the other modules have been loaded
+    var { pdfjsLib } = globalThis;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.mjs';
+
     let pdfViewer = new PDFjsViewer($('.pdfjs-viewer'));
     pdfViewer.loadDocument("test.pdf").then(function() {
         pdfViewer.setZoom("fit");
     });
+    window.pdfViewer = pdfViewer;
+    window.printDoc = function() {
+        pdfViewer.pdf.getData().then(function(data) {
+            let b64Pdf=btoa(String.fromCharCode.apply(null, data));
+            printJS({printable: b64Pdf, type: 'pdf', base64: true});
+       });
+    }
 </script>
+<script src="https://printjs-4de6.kxcdn.com/print.min.js"></script>
 </html>
