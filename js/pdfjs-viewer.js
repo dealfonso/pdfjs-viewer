@@ -146,6 +146,9 @@
     }
 
     class PDFjsViewer {
+        // The version of the viewer
+        version = "1.2.0";
+
         /**
          * Constructs the object, and initializes actions:
          *   - add the scroll handler to the container
