@@ -32,14 +32,10 @@
         contentClass: "content-wrapper",
         // Function called when a document has been loaded and its structure has been created
         onDocumentReady: () => {},
-        // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
+        // Function called when a new page is created (it is bound to the object, and receives a html object as parameter, and the page number)
         onNewPage: (page, i) => {},
-        // Function called when a page is rendered
+        // Function called when a page is rendered (it is bound to the object, and receives a html object as parameter, and the page number)
         onPageRender: (page, i) => {},
-        // Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
-        errorPage: () => {
-            $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
-        },
         // Posible zoom values to iterate over using "in" and "out"
         zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
         // Function called when the zoom level changes (it receives the zoom level)
@@ -372,7 +368,7 @@
 
                     // Call the callback function (if provided)
                     if (typeof this.settings.onNewPage === "function") {
-                        this.settings.onNewPage.call(this, pageinfo.$div, i);
+                        this.settings.onNewPage.call(this, pageinfo.$div.get(0), i);
                     }
                     this.$container.get(0).dispatchEvent(new CustomEvent("newpage", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                 }
@@ -388,9 +384,11 @@
                 this._activePage = i;
                 let activePage = this.getActivePage();
                 if (this._documentReady) {
-                    if (typeof this.settings.onActivePageChanged === "function")
+                    activePage = activePage==null?null:activePage.get(0);
+                    if (typeof this.settings.onActivePageChanged === "function") {
                         this.settings.onActivePageChanged.call(this, activePage, i);
-                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", { detail: { activePageNumber: i, activePage: activePage==null?null:activePage.get(0) } }));
+                    }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", { detail: { activePageNumber: i, activePage: activePage } }));
                 }
             }
         }
@@ -611,7 +609,7 @@
                 // Call the callback (if provided)
                 if (this._documentReady) {
                     if (typeof this.settings.onPageRender === "function") {
-                        this.settings.onPageRender.call(this, pageinfo.$div, i);
+                        this.settings.onPageRender.call(this, pageinfo.$div.get(0), i);
                     }
                     this.$container.get(0).dispatchEvent(new CustomEvent("pagerender", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                 }
