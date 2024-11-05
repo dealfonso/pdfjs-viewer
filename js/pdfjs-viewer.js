@@ -821,4 +821,4 @@
     });
 
     exports.PDFjsViewer = PDFjsViewer;
-})(window, window.jQuery??window._$??undefined);
+})(window, window._$??window.jQuery??undefined);
