@@ -3,8 +3,8 @@
     <title>Visor PDFs</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script> -->
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
     <link rel="stylesheet" href="../css/pdfjs-viewer.css">
@@ -15,7 +15,10 @@
     // The workerSrc property shall be specified.
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.mjs';
     </script>
+    <!-- <script src="../js/nojquery.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/gh/jsutilslib/nojquery@1/dist/nojquery.min.js"></script>
     <script src="../js/pdfjs-viewer.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
     <style>
         body {
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -194,25 +197,26 @@ function preparePage() {
         pdfViewer.scrollToPage(i);
     }
     /** Now create the PDFjsViewer object in the DIV */
-    let pdfViewer = new PDFjsViewer($('.maindoc'), {
+    let pdfViewer = new PDFjsViewer(
+        document.querySelector('.maindoc'), {
         zoomValues: [ 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4 ],
 
         /** Update the zoom value in the toolbar */
         onZoomChange: function(zoom) {
             zoom = parseInt(zoom * 10000) / 100;
-            $('.zoomval').text(zoom + '%');
+            document.querySelector('#zoomval').innerText = zoom + '%';
         },
 
         /** Update the active page */
         onActivePageChanged: function(page) {
-            let pageno = $(page).data('page');
+            let pageno = page.data('page');
             let pagetotal = this.getPageCount();
 
-            if (! $(page).hasClass('hidden')) {
+            if (! page.hasClass('hidden')) {
                 pdfThumbnails.setActivePage(pageno);
-                $('#pageno').val(pageno);
-                $('#pageno').attr('max', pagetotal);
-                $('#pagecount').text('de ' + pagetotal);
+                document.querySelector('#pageno').value = pageno;
+                document.querySelector('#pageno').max = pagetotal;
+                document.querySelector('#pagecount').innerText = 'de ' + pagetotal;
             }
         },
 
@@ -232,29 +236,37 @@ function preparePage() {
     });
 
     /** Create the thumbnails */
-    let pdfThumbnails = new PDFjsViewer($('.thumbnails'), {
-        zoomFillArea: 0.7,
-        onNewPage: function(page, i) {
-            $('<div class="numbering">').text(i).appendTo(page);
-            page.on('click', function() {
-                pdfThumbnails.setActivePage(page.data('page'));                
-                if (!pdfViewer.isPageVisible(page.data('page'))) {
-                    pdfViewer.scrollToPage(page.data('page'));
-                } 
-            })
-        },
-        onDocumentReady: function() {
-            this.setZoom('fit');
+    let pdfThumbnails = new PDFjsViewer(
+        document.querySelector('.thumbnails'), 
+        {
+            zoomFillArea: 0.7,
+            onNewPage: function(page, i) {
+                let div = document.createElement('div');
+                div.classList.add('numbering');
+                div.innerText = i;
+                // console.log(page);
+                page[0].appendChild(div);
+                // page.appendChild(div);
+                page.on('click', function() {
+                    pdfThumbnails.setActivePage(page.data('page'));                
+                    if (!pdfViewer.isPageVisible(page.data('page'))) {
+                        pdfViewer.scrollToPage(page.data('page'));
+                    } 
+                })
+            },
+            onDocumentReady: function() {
+                this.setZoom('fit');
+            }
         }
-    });
+    );
 
     pdfThumbnails.setActivePage = function(pageno) {
         this.$container.find('.pdfpage').removeClass('selected');
 
         let $npage = this.$container.find('.pdfpage[data-page="' + pageno + '"]').addClass('selected');
-        $('#hideselected').removeClass('pushed');
+        document.querySelector('#hideselected').classList.remove('pushed');
         if ($npage.hasClass('hidden'))
-            $('#hideselected').addClass('pushed');
+            document.querySelector('#hideselected').classList.add('pushed');
 
         if (!this.isPageVisible(pageno)) {
             this.scrollToPage(pageno);
