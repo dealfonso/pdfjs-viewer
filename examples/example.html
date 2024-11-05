@@ -207,10 +207,10 @@ function preparePage() {
 
         /** Update the active page */
         onActivePageChanged: function(page) {
-            let pageno = page.data('page');
+            let pageno = page.dataset["page"];
             let pagetotal = this.getPageCount();
 
-            if (! page.hasClass('hidden')) {
+            if (! page.classList.contains('hidden')) {
                 pdfThumbnails.setActivePage(pageno);
                 document.querySelector('#pageno').value = pageno;
                 document.querySelector('#pageno').max = pagetotal;
@@ -242,15 +242,13 @@ function preparePage() {
                 let div = document.createElement('div');
                 div.classList.add('numbering');
                 div.innerText = i;
-                // console.log(page);
-                page[0].appendChild(div);
-                // page.appendChild(div);
-                page.on('click', function() {
-                    pdfThumbnails.setActivePage(page.data('page'));                
-                    if (!pdfViewer.isPageVisible(page.data('page'))) {
-                        pdfViewer.scrollToPage(page.data('page'));
-                    } 
-                })
+                page.appendChild(div);
+                page.addEventListener('click', function() {
+                    pdfThumbnails.setActivePage(page.dataset['page']);
+                    if (!pdfViewer.isPageVisible(page.dataset['page'])) {
+                        pdfViewer.scrollToPage(page.dataset['page']);
+                    }
+                });
             },
             onDocumentReady: function() {
                 this.setZoom('fit');
