@@ -14,8 +14,511 @@
    limitations under the License.
 */
 
+(function(exports) {
+    "use strict";
+    function jQuery_fallback() {
+        const _creationDiv = document.createElement("div");
+        function $(...elements) {
+            const isHTML = element => element instanceof Element || element instanceof HTMLDocument;
+            let context = this === undefined || this._$jqfallback === undefined ? [ document ] : this;
+            let htmlObjects = [];
+            if (elements.length === 0) {
+                elements = [ ...context ];
+            }
+            for (let i in elements) {
+                let element = elements[i];
+                if (typeof element === "string") {
+                    _creationDiv.innerHTML = element;
+                    if (_creationDiv.children.length > 0) {
+                        htmlObjects.push(..._creationDiv.children);
+                        _creationDiv.innerHTML = "";
+                    } else {
+                        context.forEach((ctx, _) => {
+                            htmlObjects.push(...ctx.querySelectorAll(element));
+                        });
+                    }
+                } else if (isHTML(element)) {
+                    htmlObjects.push(element);
+                }
+                if (Array.isArray(element)) {
+                    element.map(e => $(e)).forEach((element, i) => htmlObjects.push(...element));
+                } else if (typeof element === "function") {
+                    $(document).on("DOMContentLoaded", element);
+                }
+            }
+            Object.assign(htmlObjects, $);
+            return htmlObjects;
+        }
+        $._$jqfallback = "1.0.0";
+        $.attr = function(attributeName, attributeValue) {
+            if (attributeValue === undefined) {
+                return this[0].getAttribute(attributeName);
+            }
+            this.forEach(x => x.setAttribute(attributeName, attributeValue));
+            return this;
+        };
+        $.data = function(attributeName, attributeValue) {
+            if (attributeValue === undefined) {
+                return this[0].dataset[attributeName];
+            }
+            this.forEach(x => x.dataset[attributeName] = attributeValue);
+            return this;
+        };
+        $.addClass = function(className) {
+            this.forEach(x => x.classList.add(className));
+            return this;
+        };
+        $.hasClass = function(className) {
+            if (this.length === 0) {
+                return false;
+            }
+            return this[0].classList.contains(className);
+        };
+        $.removeClass = function(className) {
+            this.forEach(x => x.classList.remove(className));
+            return this;
+        };
+        $.toggleClass = function(className) {
+            this.forEach(x => x.classList.toggle(className));
+            return this;
+        };
+        $.width = function(width) {
+            if (width === undefined) {
+                return this[0].offsetWidth;
+            }
+            this.forEach(x => x.style.width = width + "px");
+            return this;
+        };
+        $.height = function(height) {
+            if (height === undefined) {
+                return this[0].offsetHeight;
+            }
+            this.forEach(x => x.style.height = height + "px");
+            return this;
+        };
+        $.append = function(element) {
+            if (element instanceof HTMLElement) {
+                if (this.length > 0) {
+                    this[0].appendChild(element);
+                }
+            } else if (Array.isArray(element)) {
+                element.forEach(x => this.append(x));
+            } else if (typeof element === "string") {
+                this.forEach(x => x.innerHTML += element);
+            }
+            return this;
+        };
+        $.find = function(selector) {
+            let result = [];
+            this.forEach(x => result.push(...Array.from(x.querySelectorAll(selector))));
+            return $(result);
+        };
+        $.offset = function() {
+            let rect = this[0].getBoundingClientRect();
+            return {
+                top: rect.top + window.scrollY,
+                left: rect.left + window.scrollX
+            };
+        };
+        $.outerHeight = function() {
+            return this[0].offsetHeight;
+        };
+        $.outerWidth = function() {
+            return this[0].offsetWidth;
+        };
+        $.position = function() {
+            let rect = this[0].getBoundingClientRect();
+            return {
+                top: rect.top,
+                left: rect.left
+            };
+        };
+        $.empty = function() {
+            this.forEach(x => x.innerHTML = "");
+            return this;
+        };
+        $.get = function(index) {
+            return this[index];
+        };
+        $.on = function(event, callback) {
+            this.forEach(x => x.addEventListener(event, callback));
+            return this;
+        };
+        $.off = function(event, callback) {
+            this.forEach(x => x.removeEventListener(event, callback));
+            return this;
+        };
+        $.each = function(callback) {
+            callback = callback.bind(this);
+            for (let i = 0; i < this.length; i++) {
+                callback(i, this[i]);
+            }
+            return this;
+        };
+        $.remove = function() {
+            this.forEach(x => x.remove());
+            return this;
+        };
+        $.after = function(element) {
+            this.forEach(x => x.insertAdjacentElement("afterend", ...$(element)));
+            return this;
+        };
+        return $;
+    }
+    exports.jQuery_fallback = jQuery_fallback;
+})(window);
+
+(function(t) {
+    (t => {
+        const f = document.createElement("div");
+        function h(...e) {
+            const i = t => t instanceof Element || t instanceof HTMLDocument;
+            let r = this._$version === undefined ? [ document ] : this;
+            let s = [];
+            if (e.length === 0) {
+                e = [ ...r ];
+            }
+            for (let t in e) {
+                let n = e[t];
+                if (typeof n === "string") {
+                    f.innerHTML = n;
+                    if (f.children.length > 0) {
+                        s.push(...f.children);
+                        f.innerHTML = "";
+                    } else {
+                        r.forEach((t, e) => {
+                            s.push(...t.querySelectorAll(n));
+                        });
+                    }
+                } else if (i(n)) {
+                    s.push(n);
+                }
+                if (Array.isArray(n)) {
+                    n.map(t => h(t)).forEach((t, e) => s.push(...t));
+                } else if (typeof n === "function") {
+                    h(document).on("DOMContentLoaded", n);
+                }
+            }
+            Object.assign(s, h);
+            return s;
+        }
+        h._$version = "1.1.0";
+        h.addClass = function(...e) {
+            this.forEach((n, t) => {
+                e.forEach((t, e) => n.classList.add(t));
+            });
+            return this;
+        };
+        h.removeClass = function(...e) {
+            this.forEach((n, t) => {
+                e.forEach((t, e) => n.classList.remove(t));
+            });
+            return this;
+        };
+        h.hasClass = function(t) {
+            if (this.length === 0) {
+                return false;
+            }
+            return this[0].classList.contains(t);
+        };
+        h.toggleClass = function(...e) {
+            this.forEach((n, t) => {
+                e.forEach((t, e) => n.classList.toggle(t));
+            });
+            return this;
+        };
+        h.on = function(i, n = t => {}) {
+            this.forEach((t, e) => {
+                if (t.__handlers == null) {
+                    t.__handlers = {};
+                }
+                if (t.__handlers[i] == null) {
+                    t.__handlers[i] = [];
+                    t.addEventListener(i, n => {
+                        t.__handlers[i].forEach((t, e) => {
+                            t(n);
+                        });
+                    });
+                }
+                t.__handlers[i].push(n);
+            });
+            return this;
+        };
+        h.off = function(n, i = null) {
+            this.forEach((e, t) => {
+                if (e.__handlers == null) {
+                    e.__handlers = {};
+                }
+                if (i == null) {
+                    e.__handlers[n] = [];
+                } else {
+                    let t = 0;
+                    while (t < e.__handlers[n].length) {
+                        if (e.__handlers[n][t] == i) {
+                            delete e.__handlers[n][t];
+                        } else {
+                            t++;
+                        }
+                    }
+                }
+            });
+            return this;
+        };
+        h.attr = function(e, s) {
+            if (typeof e === "string") {
+                let n = e;
+                let i = s;
+                if (arguments.length == 1) {
+                    if (this.length >= 1) {
+                        return l(this[0], n);
+                    }
+                    return null;
+                }
+                this.forEach((t, e) => {
+                    t.setAttribute(n, i);
+                });
+            } else if (Array.isArray(e)) {
+                let t = e;
+                let n = typeof s === "boolean" ? s : false;
+                let i = {};
+                let r = this[0] ?? null;
+                t.forEach((t, e) => {
+                    i[t] = l(r, t, n);
+                });
+                i.removeNulls = function() {
+                    Object.keys(this).forEach(t => {
+                        if (this[t] === null) {
+                            delete this[t];
+                        }
+                    });
+                    return this;
+                }.bind(i);
+                return i;
+            } else if (typeof e === "object") {
+                let i = e;
+                let r = typeof s === "boolean" ? s : false;
+                this.forEach((n, t) => {
+                    for (let e in i) {
+                        let t = r ? o(e) : e;
+                        n.setAttribute(t, i[e]);
+                    }
+                });
+            }
+            return this;
+        };
+        h.droppable = function(n = t => {}, i = t => {}) {
+            this.forEach((t, e) => {
+                h(t).on("dragover", t => t.preventDefault());
+                h(t).on("drop", t => {
+                    t.preventDefault();
+                    if (t.dataTransfer.files && t.dataTransfer.files.length > 0) {
+                        n(t.dataTransfer.files);
+                    } else {
+                        i(t.dataTransfer);
+                    }
+                });
+            });
+            return this;
+        };
+        h.data = function(e, n) {
+            if (n === undefined) {
+                return this[0].dataset[e];
+            }
+            this.forEach(t => t.dataset[e] = n);
+            return this;
+        };
+        h.width = function(e) {
+            if (e === undefined) {
+                if (this.length === 0) {
+                    return 0;
+                }
+                return this[0].offsetWidth;
+            }
+            if (typeof e === "string") {
+                e = parseInt(e);
+                if (!isNaN(e)) {
+                    e = e + "px";
+                }
+            }
+            this.forEach(t => t.style.width = e);
+            return this;
+        };
+        h.height = function(e) {
+            if (e === undefined) {
+                if (this.length === 0) {
+                    return 0;
+                }
+                return this[0].offsetHeight;
+            }
+            if (typeof e === "string") {
+                e = parseInt(e);
+                if (!isNaN(e)) {
+                    e = e + "px";
+                }
+            }
+            this.forEach(t => t.style.height = e);
+            return this;
+        };
+        h.offset = function() {
+            if (this.length === 0) {
+                return {
+                    top: 0,
+                    left: 0
+                };
+            }
+            let t = this[0].getBoundingClientRect();
+            return {
+                top: t.top + window.scrollY,
+                left: t.left + window.scrollX
+            };
+        };
+        h.outerHeight = function() {
+            if (this.length === 0) {
+                return 0;
+            }
+            return this[0].offsetHeight;
+        };
+        h.outerWidth = function() {
+            if (this.length === 0) {
+                return 0;
+            }
+            return this[0].offsetWidth;
+        };
+        h.position = function() {
+            if (this.length === 0) {
+                return {
+                    top: 0,
+                    left: 0
+                };
+            }
+            let t = this[0].getBoundingClientRect();
+            return {
+                top: t.top,
+                left: t.left
+            };
+        };
+        h.empty = function() {
+            this.forEach(t => t.innerHTML = "");
+            return this;
+        };
+        h.remove = function() {
+            this.forEach(t => t.remove());
+            return this;
+        };
+        h.append = function(e) {
+            if (e instanceof HTMLElement) {
+                if (this.length > 0) {
+                    this[0].appendChild(e);
+                }
+            } else if (Array.isArray(e)) {
+                e.forEach(t => this.append(t));
+            } else if (typeof e === "string") {
+                this.forEach(t => t.innerHTML += e);
+            }
+            return this;
+        };
+        h.prepend = function(e) {
+            if (e instanceof HTMLElement) {
+                if (this.length > 0) {
+                    this[0].insertBefore(e, this[0].firstChild);
+                }
+            } else if (Array.isArray(e)) {
+                e.forEach(t => this.prepend(t));
+            } else if (typeof e === "string") {
+                this.forEach(t => t.innerHTML = e + t.innerHTML);
+            }
+            return this;
+        };
+        h.after = function(e) {
+            if (e instanceof HTMLElement) {
+                this.forEach(t => t.insertAdjacentElement("afterend", e));
+            } else if (Array.isArray(e)) {
+                e.forEach(t => this.after(t));
+            } else if (typeof e === "string") {
+                this.forEach(t => t.insertAdjacentHTML("afterend", e));
+            }
+            return this;
+        };
+        h.before = function(e) {
+            if (e instanceof HTMLElement) {
+                this.forEach(t => t.insertAdjacentElement("beforebegin", e));
+            } else if (Array.isArray(e)) {
+                e.forEach(t => this.before(t));
+            } else if (typeof e === "string") {
+                this.forEach(t => t.insertAdjacentHTML("beforebegin", e));
+            }
+            return this;
+        };
+        h.find = function(e) {
+            let n = [];
+            this.forEach(t => n.push(...Array.from(t.querySelectorAll(e))));
+            return h(n);
+        };
+        h.get = function(t) {
+            if (t === undefined) {
+                return this;
+            }
+            if (this.length === 0 || t < 0 || t >= this.length) {
+                return null;
+            }
+            return this[t];
+        };
+        h.each = function(e) {
+            e = e.bind(this);
+            for (let t = 0; t < this.length; t++) {
+                e(t, this[t]);
+            }
+            return this;
+        };
+        h._$ = function(...t) {
+            return h.bind(this)(...t);
+        };
+        function l(t, e, n = false) {
+            if (t === null) {
+                return null;
+            }
+            let i = e.split(":");
+            e = i[0];
+            let r = n ? o(e) : e;
+            let s = t.getAttribute(r);
+            if (s != null) {
+                let t = "string";
+                if (i.length > 1) {
+                    t = i[1].toLowerCase();
+                }
+                switch (t) {
+                  case "int":
+                    try {
+                        s = parseInt(s);
+                    } catch (t) {}
+                    ;
+                    break;
+
+                  case "float":
+                    try {
+                        s = parseFloat(s);
+                    } catch (t) {}
+                    ;
+                    break;
+
+                  case "bool":
+                    s = [ "", "true", "1" ].indexOf(s.toLowerCase()) >= 0;
+                    break;
+                }
+            }
+            return s;
+        }
+        const o = t => t.replace(/[A-Z]/g, t => `-${t.toLowerCase()}`);
+        t._$ = h;
+    })(window);
+})(window);
+
 (function(exports, $) {
     "use strict";
+    if ($ === undefined) {
+        console.error("jQuery-like library not available");
+        return;
+    }
     let defaults = {
         visibleThreshold: .5,
         extraPagesToLoad: 3,
@@ -24,9 +527,6 @@
         onDocumentReady: () => {},
         onNewPage: (page, i) => {},
         onPageRender: (page, i) => {},
-        errorPage: () => {
-            $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"));
-        },
         zoomValues: [ .25, .5, .75, 1, 1.25, 1.5, 2, 4, 8 ],
         onZoomChange: zoomlevel => {},
         onActivePageChanged: (page, i) => {},
@@ -42,7 +542,7 @@
             };
             this.current = 1;
             this.viewer = viewer;
-            this.settings = $.extend(defaults, options);
+            this.settings = Object.assign({}, defaults, options);
             this.settings.zoomValues = this.settings.zoomValues.sort();
         }
         get(zoom = null) {
@@ -103,12 +603,14 @@
         }
     }
     class PDFjsViewer {
+        version = "1.2.0";
         constructor($container, options = {}) {
-            this.settings = $.extend(Object.assign({}, defaults), options);
+            this.settings = Object.assign({}, defaults, options);
             this._zoom = new Zoomer(this, {
                 zoomValues: this.settings.zoomValues,
                 fillArea: this.settings.zoomFillArea
             });
+            $container = $($container);
             this.$container = $container;
             $container.get(0)._pdfjsViewer = this;
             this._setScrollListener();
@@ -218,17 +720,15 @@
                     pageinfo = this._createSkeleton(pageinfo, i);
                     this.pages[i] = pageinfo;
                     this._placeSkeleton(pageinfo, i);
-                    if (this._documentReady) {
-                        if (typeof this.settings.onNewPage === "function") {
-                            this.settings.onNewPage.call(this, pageinfo.$div, i);
-                        }
-                        this.$container.get(0).dispatchEvent(new CustomEvent("newpage", {
-                            detail: {
-                                pageNumber: i,
-                                page: pageinfo.$div.get(0)
-                            }
-                        }));
+                    if (typeof this.settings.onNewPage === "function") {
+                        this.settings.onNewPage.call(this, pageinfo.$div.get(0), i);
                     }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("newpage", {
+                        detail: {
+                            pageNumber: i,
+                            page: pageinfo.$div.get(0)
+                        }
+                    }));
                 }
             }
         }
@@ -237,11 +737,14 @@
                 this._activePage = i;
                 let activePage = this.getActivePage();
                 if (this._documentReady) {
-                    if (typeof this.settings.onActivePageChanged === "function") this.settings.onActivePageChanged.call(this, activePage, i);
+                    activePage = activePage == null ? null : activePage.get(0);
+                    if (typeof this.settings.onActivePageChanged === "function") {
+                        this.settings.onActivePageChanged.call(this, activePage, i);
+                    }
                     this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", {
                         detail: {
                             activePageNumber: i,
-                            activePage: activePage == null ? null : activePage.get(0)
+                            activePage: activePage
                         }
                     }));
                 }
@@ -271,6 +774,9 @@
             if (this.pdf === null || i === undefined || i === null || i < 1 || i > this.pdf.numPages) {
                 return false;
             }
+            if (typeof i === "string") {
+                i = parseInt(i);
+            }
             let $page = i;
             if (typeof i === "number") {
                 if (this.pages[i] === undefined) return false;
@@ -295,7 +801,7 @@
                 return areaVisible > 0;
             }.bind(this)).map(x => x.$div);
             this._setActivePage(i_page);
-            let visibles = $visibles.map(x => $(x).data("page"));
+            let visibles = $visibles.map(x => parseInt($(x).data("page")));
             if (visibles.length > 0) {
                 let minVisible = Math.min(...visibles);
                 let maxVisible = Math.max(...visibles);
@@ -389,7 +895,7 @@
                 this._setPageContent(pageinfo.$div, $canvas);
                 if (this._documentReady) {
                     if (typeof this.settings.onPageRender === "function") {
-                        this.settings.onPageRender.call(this, pageinfo.$div, i);
+                        this.settings.onPageRender.call(this, pageinfo.$div.get(0), i);
                     }
                     this.$container.get(0).dispatchEvent(new CustomEvent("pagerender", {
                         detail: {
@@ -563,4 +1069,4 @@
         });
     });
     exports.PDFjsViewer = PDFjsViewer;
-})(window, jQuery);
+})(window, window._$ ?? window.jQuery ?? undefined);
