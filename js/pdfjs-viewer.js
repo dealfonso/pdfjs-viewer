@@ -235,7 +235,7 @@
          */
         _cleanPage($page) {
             let $emptyContent = this.settings.emptyContent();
-            $page.find(`.${this.settings.contentClass}`).empty().append($emptyContent)
+            $page.find(`.${this.settings.contentClass}`).html("").append($emptyContent)
         }
     
         /**
@@ -244,7 +244,7 @@
          * @param {*} $content the new content that will be set in the page
          */
         _setPageContent($page, $content) {
-            $page.find(`.${this.settings.contentClass}`).empty().append($content)
+            $page.find(`.${this.settings.contentClass}`).html("").append($content)
         }
 
         /**
@@ -473,7 +473,9 @@
             this._setActivePage(i_page);
     
             // Now get the visible pages
-            let visibles = $visibles.map((x) => parseInt($(x).data('page')));
+            let visibles = $visibles.map((x) => {
+                return parseInt($(x).data('page'))
+            });
             if (visibles.length > 0) {
                 // Now will add some extra pages (before and after) the visible ones, to have them prepared in case of scroll
                 let minVisible = Math.min(...visibles);
