@@ -145,6 +145,9 @@
     }
 
     class PDFjsViewer {
+        // The version of the viewer
+        version = "1.2.0";
+        
         /**
          * Constructs the object, and initializes actions:
          *   - add the scroll handler to the container
@@ -364,12 +367,10 @@
                     this._placeSkeleton(pageinfo, i);
     
                     // Call the callback function (if provided)
-                    if (this._documentReady) {
-                        if (typeof this.settings.onNewPage === "function") {
-                            this.settings.onNewPage.call(this, pageinfo.$div, i);
-                        }
-                        this.$container.get(0).dispatchEvent(new CustomEvent("newpage", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
+                    if (typeof this.settings.onNewPage === "function") {
+                        this.settings.onNewPage.call(this, pageinfo.$div.get(0), i);
                     }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("newpage", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                 }
             }
         }
