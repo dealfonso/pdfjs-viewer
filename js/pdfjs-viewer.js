@@ -15,7 +15,12 @@
 */
 (function(exports, $) {
     'use strict';
-    
+
+    if ($ === undefined) {
+        console.error("jQuery-like library not available");
+        return;
+    }
+
     let defaults = {
         // Threshold to consider that a page is visible
         visibleThreshold: 0.5,
@@ -27,14 +32,10 @@
         contentClass: "content-wrapper",
         // Function called when a document has been loaded and its structure has been created
         onDocumentReady: () => {},
-        // Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
+        // Function called when a new page is created (it is bound to the object, and receives a html object as parameter, and the page number)
         onNewPage: (page, i) => {},
-        // Function called when a page is rendered
+        // Function called when a page is rendered (it is bound to the object, and receives a html object as parameter, and the page number)
         onPageRender: (page, i) => {},
-        // Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
-        errorPage: () => {
-            $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
-        },
         // Posible zoom values to iterate over using "in" and "out"
         zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
         // Function called when the zoom level changes (it receives the zoom level)
@@ -70,7 +71,7 @@
             // The viewer instance whose pages may be zoomed
             this.viewer = viewer;
             // The settings
-            this.settings = $.extend(defaults, options);
+            this.settings = Object.assign({}, defaults, options);
             
             // Need having the zoom values in order
             this.settings.zoomValues = this.settings.zoomValues.sort();
@@ -158,7 +159,7 @@
          */
         constructor($container, options = {}) {
     
-            this.settings = $.extend(Object.assign({}, defaults), options);
+            this.settings = Object.assign({}, defaults, options);
     
             // Create the zoomer helper
             this._zoom = new Zoomer(this, {
@@ -166,6 +167,8 @@
                 fillArea: this.settings.zoomFillArea,
             });
     
+            $container = $($container);
+
             // Store the container
             this.$container = $container;
     
@@ -365,7 +368,7 @@
                     pageinfo = this._createSkeleton(pageinfo, i);
                     this.pages[i] = pageinfo;
                     this._placeSkeleton(pageinfo, i);
-    
+
                     // Call the callback function (if provided)
                     if (typeof this.settings.onNewPage === "function") {
                         this.settings.onNewPage.call(this, pageinfo.$div.get(0), i);
@@ -384,9 +387,11 @@
                 this._activePage = i;
                 let activePage = this.getActivePage();
                 if (this._documentReady) {
-                    if (typeof this.settings.onActivePageChanged === "function")
+                    activePage = activePage==null?null:activePage.get(0);
+                    if (typeof this.settings.onActivePageChanged === "function") {
                         this.settings.onActivePageChanged.call(this, activePage, i);
-                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", { detail: { activePageNumber: i, activePage: activePage==null?null:activePage.get(0) } }));
+                    }
+                    this.$container.get(0).dispatchEvent(new CustomEvent("activepagechanged", { detail: { activePageNumber: i, activePage: activePage } }));
                 }
             }
         }
@@ -425,6 +430,9 @@
         isPageVisible(i) {
             if ((this.pdf === null) || (i === undefined) || (i === null) || (i < 1) || (i > this.pdf.numPages)) {
                 return false;
+            }
+            if (typeof i === "string") {
+                i = parseInt(i);
             }
             let $page = i;
             if (typeof i === "number") {
@@ -465,7 +473,9 @@
             this._setActivePage(i_page);
     
             // Now get the visible pages
-            let visibles = $visibles.map((x) => $(x).data('page'));
+            let visibles = $visibles.map((x) => {
+                return parseInt($(x).data('page'))
+            });
             if (visibles.length > 0) {
                 // Now will add some extra pages (before and after) the visible ones, to have them prepared in case of scroll
                 let minVisible = Math.min(...visibles);
@@ -604,7 +614,7 @@
                 // Call the callback (if provided)
                 if (this._documentReady) {
                     if (typeof this.settings.onPageRender === "function") {
-                        this.settings.onPageRender.call(this, pageinfo.$div, i);
+                        this.settings.onPageRender.call(this, pageinfo.$div.get(0), i);
                     }
                     this.$container.get(0).dispatchEvent(new CustomEvent("pagerender", { detail: { pageNumber: i, page: pageinfo.$div.get(0) } }));
                 }
@@ -814,4 +824,4 @@
     });
 
     exports.PDFjsViewer = PDFjsViewer;
-})(window, jQuery)
+})(window, window.jQuery??undefined);
