@@ -235,7 +235,7 @@
          */
         _cleanPage($page) {
             let $emptyContent = this.settings.emptyContent();
-            $page.find(`.${this.settings.contentClass}`).empty().append($emptyContent)
+            $page.find(`.${this.settings.contentClass}`).html("").append($emptyContent)
         }
     
         /**
@@ -244,7 +244,7 @@
          * @param {*} $content the new content that will be set in the page
          */
         _setPageContent($page, $content) {
-            $page.find(`.${this.settings.contentClass}`).empty().append($content)
+            $page.find(`.${this.settings.contentClass}`).html("").append($content)
         }
 
         /**
