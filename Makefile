@@ -2,6 +2,8 @@
 LIBRARY_NAME = pdfjs-viewer
 # The files that compose your library (if not specified, all the .js files in the src folder will be used)
 FILES = js/pdfjs-viewer.js
+# The css files that accompany your library (if not specified, no css files will be used)
+CSSFILES = css/pdfjs-viewer.css css/pdftoolbar.css
 # Folder in which the build files will be located (if not specified, the folder "dist" will be used)
 DIST_FOLDER =
 # Dependencies of your library (if not specified, no dependencies will be used)
@@ -43,19 +45,30 @@ ENCLOSURE := $(if $(ENCLOSURE),-e $(ENCLOSURE),)
 DEP_FILES = $(foreach fd, $(DEPENDS), $(DEPENDS_FOLDER)/$(fd)/dist/$(fd).module.js)
 
 # The version of this library (this is intended to track the version of this template)
-MAKEFILE_VERSION = 1.3.0
+MAKEFILE_VERSION = 1.3.1
 
-RESULT_FILES = $(FILEPATH).full.js $(FILEPATH).min.js $(FILEPATH).js $(FILEPATH).compress.js $(FILEPATH).module.js
+# The result files 
+RESULT_FILES_CSS = $(if $(CSSFILES),$(FILEPATH).css $(FILEPATH).min.css)
+RESULT_FILES_JS = $(FILEPATH).full.js $(FILEPATH).min.js $(FILEPATH).js $(FILEPATH).compress.js $(FILEPATH).module.js $(FILEPATH).min.js.map $(FILEPATH).compress.js.map 
+RESULT_FILES = $(RESULT_FILES_JS) $(RESULT_FILES_CSS)
 
-INPUT_FILES = $(FILEPATH).raw.js $(DEP_FILES)
+INTERMEDIATE_FILES_JS = $(FILEPATH).raw.js
+INTERMEDIATE_FILES_CSS = $(if $(CSSFILES),$(FILEPATH).raw.css)
+INTERMEDIATE_FILES = $(INTERMEDIATE_FILES_JS) $(INTERMEDIATE_FILES_CSS)
+
+INPUT_FILES = $(DEP_FILES)
 
 all: $(RESULT_FILES)
+
+js: $(RESULT_FILES_JS)
+
+css: $(RESULT_FILES_CSS)
 
 module: $(FILEPATH).module.js
 
 clean:
-	rm -f $(RESULT_FILES)
-	if [ -d $(DIST_FOLDER) ] && [ -z "$(ls -A $(DIST_FOLDER))" ]; then rm -r $(DIST_FOLDER); fi
+	rm -f $(RESULT_FILES) $(INTERMEDIATE_FILES)
+	if [ $(DIST_FOLDER) != "." ] && [ -d $(DIST_FOLDER) ] && [ -z "$(ls -A $(DIST_FOLDER))" ]; then rm -r $(DIST_FOLDER); fi
 
 cleanall: clean
 	for fd in $(DEPENDS); do $(MAKE) -C $(DEPENDS_FOLDER)/$$fd clean; done
@@ -83,6 +96,14 @@ $(FILEPATH).module.js: $(FILEPATH).raw.js
 	@mkdir -p $(DIST_FOLDER)
 	( cat notice; echo 'if (typeof imports === "undefined") { var imports = {}; }' ; cat $(FILEPATH).raw.js | uglifyjs $(ENCLOSURE) | js-beautify -t -s 1 -m 1 -j -n ) > $(FILEPATH).module.js
 
+$(FILEPATH).css: $(FILEPATH).raw.css
+	@mkdir -p $(DIST_FOLDER)
+	cleancss $(FILEPATH).raw.css --format beautify | cat notice - > $(FILEPATH).css
+
+$(FILEPATH).min.css: $(FILEPATH).css
+	@mkdir -p $(DIST_FOLDER)
+	cleancss --source-map $(FILEPATH).css --source-map-inline-sources -o $(FILEPATH).min.css
+
 %.module.js:
 	$(MAKE) -C $(dir $(@D)) module
 
@@ -90,14 +111,27 @@ $(FILEPATH).module.js: $(FILEPATH).raw.js
 	@mkdir -p $(DIST_FOLDER)
 	cat $(DEP_FILES) $(PRE) $(FILES) $(POST) > $(FILEPATH).raw.js
 
+%.raw.css: $(CSSFILES)
+	@mkdir -p $(DIST_FOLDER)
+	cat $(CSSFILES) > $(FILEPATH).raw.css
+
 ################################################################################
 # CHANGELOG
 ################################################################################
+#
+# 1.4.0
+#	* Remove the intermediate files when cleaning
+#	* Prevent trying to remove folder . if it is the dist folder
+#   * Add CSS files
+#
+# ----------------------------------------------------------------
 # 
 # 1.3.0
 #	* Enable to specify the license for the minified version by using a file or a text string
 #	* Add the ENCLOSURE variable to specify the enclosure of the library. If not specified, the library is assumed to be enclosed.
 #	  The most common value is "exports:window" to export the library to the window object.
+#
+# ----------------------------------------------------------------
 #
 # 1.2.0
 #	* Add different variables for FILENAME and FILEPATH to avoid problems with the path
