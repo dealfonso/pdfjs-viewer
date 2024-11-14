@@ -1,3 +1,5 @@
+[![](https://data.jsdelivr.com/v1/package/gh/dealfonso/pdfjs-viewer/badge?style=rounded)](https://www.jsdelivr.com/package/gh/dealfonso/pdfjs-viewer) ![](https://img.shields.io/github/v/release/dealfonso/pdfjs-viewer) ![](https://img.shields.io/github/release-date/dealfonso/pdfjs-viewer) ![](https://img.shields.io/github/languages/code-size/dealfonso/pdfjs-viewer) ![](https://img.shields.io/github/license/dealfonso/pdfjs-viewer)
+
 # PDFjs-viewer
 
 The distribution of [Mozilla's PDF.js](https://mozilla.github.io/pdf.js/) includes an example of a viewer that can be used in a web page by means of inserting using an `iframe`. But the viewer cannot be easily used or customized for using it as part of a web application.
@@ -20,7 +22,6 @@ or even easier
 ```html
 <div class="pdfjs-viewer" pdf-document="https://github.com/dealfonso/pdfjs-viewer/raw/main/examples/test.pdf" initial-zoom="fit">
 ```
-
 
 The PDFjsViewer is customizable and has different options and callbacks that enable it to be easily integrated in your application.
 
@@ -51,15 +52,29 @@ But if (as in my case) you need more than simply a PDF viewer embedded in an `if
 ## Using
 
 ### Dependencies
-PDFjs-viewer depends on Mozilla's [PDF.js library](https://mozilla.github.io/pdf.js) and [jQuery](https://jquery.com). So please be sure to include the dependency in your project:
+PDFjs-viewer depends on Mozilla's [PDF.js library](https://mozilla.github.io/pdf.js). So please be sure to include the dependencies in your project:
 
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 var pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
+```
+
+PDFjs-viewer also depends on a [jQuery](https://jquery.com/) compatible library, so please include it in your project before including the PDFjs-viewer library:
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+```
+
+#### Troubleshooting
+Some users have reported problems with jQuery. So I added support for an alternative library called [nojquery](https://github.com/jsutilslib/nojquery). If you want to use this library instead, please include it before the PDFjs-viewer library.
+
+**nojquery** is a library that provides a subset of jQuery functions that are used in PDFjs-viewer. It is a lightweight library that can be used as a replacement for jQuery in some cases. `PDFjs-viewer` will use `nojquery` with more priority than jQuery if it is included in the project.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/jsutilslib/nojquery/nojquery.min.js"></script>
 ```
 
 ### From source
@@ -82,7 +97,7 @@ cleancss css/*.css --format beautify | cat notice - > pdfjs-viewer.css
 cleancss css/*.css | cat notice.min - > pdfjs-viewer.min.css
 ```
 
-Now you can use files `pdfjs-viewer.min.js` and `pdfjs-viewer.min.css` in your project (jQuery is a prerequisite):
+Now you can use files `pdfjs-viewer.min.js` and `pdfjs-viewer.min.css` in your project (jQuery or nojquery is a prerequisite):
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -96,19 +111,19 @@ It is possible to use `pdfjs-viewer` directly from a CDN:
 
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.1/pdfjs-viewer.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@1.1/pdfjs-viewer.min.css">
+<script src="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@2.0/dist/pdfjs-viewer.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dealfonso/pdfjs-viewer@2.0/dist/pdfjs-viewer.min.css">
 ```
 
 ## API
 
-The creation of a PDF viewer consists of creating a `PDFjsViewer` object, setting the jQuery object in which the PDF viewer should be set, and configuring the options that we may need.
+The creation of a PDF viewer consists of creating a `PDFjsViewer` object, setting the object in which the PDF viewer should be set, and configuring the options that we may need.
 
 ```javascript
 var options = { 
     ...
 };
-var pdfViewer = new PDFjsViewer($('.pdfjs-viewer'), options);
+var pdfViewer = new PDFjsViewer(document.querySelector('.pdfjs-viewer'), options);
 ```
 
 ### Options
@@ -129,9 +144,9 @@ zoomValues: [ 0.25, 0.5, 0.75, 1, 1.25, 1.50, 2, 4, 8 ],
 zoomFillArea: 0.95,
 // Function called when a document has been loaded and its structure has been created
 onDocumentReady: () => {},
-// Function called when a new page is created (it is binded to the object, and receives a jQuery object as parameter)
+// Function called when a new page is created (it is bound to the object, and receives an html object as parameter, and the page number)
 onNewPage: (page, i) => {},
-// Function called when a page is rendered
+// Function called when a page is rendered (it is bound to the object, and receives an html object as parameter, and the page number)
 onPageRender: (page, i) => {},
 // Function called when the zoom level changes (it receives the zoom level)
 onZoomChange: (zoomlevel) => {},
@@ -139,10 +154,6 @@ onZoomChange: (zoomlevel) => {},
 onActivePageChanged: (page, i) => {},
 // Function called to get the content of an empty page
 emptyContent: () => $('<div class="loader"></div>')
-// Function called to obtain a page that shows an error when the document could not be loaded (returns a jQuery object)
-errorPage: () => {
-    $(`<div class="placeholder"></div>`).addClass(this.settings.pageClass).append($(`<p class="m-auto"></p>`).text("could not load document"))
-},
 // The scale to which the pages are rendered (1.5 is the default value for the PDFjs viewer); a higher value will render the pages with a higher resolution
 //   but it will consume more memory and CPU. A lower value will render the pages with a lower resolution, but they will be uglier.
 renderingScale: 1.5,
