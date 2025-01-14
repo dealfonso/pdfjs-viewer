@@ -136,6 +136,8 @@ visibleThreshold: 0.5,
 extraPagesToLoad: 3,
 // The class used for each page (the div that wraps the content of the page)
 pageClass: "pdfpage",
+// Prefix of the id used for each page (the page id will be <pageIdPrefix>-<page number>)
+pageIdPrefix: "page",
 // The class used for the content of each page (the div that contains the page)
 contentClass: "content-wrapper",
 // Posible zoom values to iterate over using "in" and "out"
