@@ -28,6 +28,8 @@
         extraPagesToLoad: 3,
         // The class used for each page (the div that wraps the content of the page)
         pageClass: "pdfpage",
+        // Prefix of the id used for each page (the page id will be <pageIdPrefix>-<page number>)
+        pageIdPrefix: "page",
         // The class used for the content of each page (the div that contains the page)
         contentClass: "content-wrapper",
         // Function called when a document has been loaded and its structure has been created
@@ -315,7 +317,7 @@
             console.assert(((pageinfo.width > 0) && (pageinfo.height > 0)), "Page width and height must be greater than 0");
     
             // Now create the skeleton for the divs
-            pageinfo.$div = $(`<div id="page-${i}">`)
+            pageinfo.$div = $(`<div id="${this.settings.pageIdPrefix}-${i}">`)
                 .attr('data-page', i)
                 .data('width', pageinfo.width)
                 .data('height', pageinfo.height)
